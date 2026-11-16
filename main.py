@@ -6,13 +6,15 @@ import pico2d
 
 from code.background import Background
 from code.camera import Camera
+from code.display import clear_canvas, configure_fullscreen
 from code.player import Player
 from code.settings import SCREEN_HEIGHT, SCREEN_WIDTH, WORLD_WIDTH
 
 
 def main():
-    pico2d.open_canvas(SCREEN_WIDTH, SCREEN_HEIGHT, full=True)
+    pico2d.open_canvas(SCREEN_WIDTH, SCREEN_HEIGHT)
     try:
+        configure_fullscreen()
         background = Background()
         player = Player()
         camera = Camera(SCREEN_WIDTH, WORLD_WIDTH)
@@ -34,7 +36,7 @@ def main():
                 break
             player.update(dt)
             camera.follow(player.x)
-            pico2d.clear_canvas()
+            clear_canvas()
             background.draw(camera.x)
             player.draw(camera.x)
             pico2d.update_canvas()
