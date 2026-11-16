@@ -31,7 +31,7 @@ class PlatformerTests(unittest.TestCase):
         self.assertEqual(self.player.state, "idle")
 
     def test_jump_no_double_jump_and_landing(self):
-        floor = GROUND_HEIGHT + 32
+        floor = GROUND_HEIGHT + Player.DRAW_SIZE / 2
         self.key(pico2d.SDLK_w)
         self.player.update(0.1)
         self.assertGreater(self.player.y, floor)
@@ -62,7 +62,7 @@ class PlatformerTests(unittest.TestCase):
         self.assertAlmostEqual(self.player.velocity_y, velocity - Player.FAST_FALL_GRAVITY * 0.1)
         for _ in range(60):
             self.player.update(1 / 60)
-        self.assertEqual(self.player.y, GROUND_HEIGHT + 32)
+        self.assertEqual(self.player.y, GROUND_HEIGHT + Player.DRAW_SIZE / 2)
 
     def test_opposing_keys_and_map_limits(self):
         self.key(pico2d.SDLK_a)
@@ -70,14 +70,15 @@ class PlatformerTests(unittest.TestCase):
         self.player.update(0.1)
         self.assertEqual(self.player.x, 200)
         self.key(pico2d.SDLK_a, False)
-        self.player.x = WORLD_WIDTH - 33
+        half = Player.DRAW_SIZE / 2
+        self.player.x = WORLD_WIDTH - half - 1
         self.player.update(0.1)
-        self.assertEqual(self.player.x, WORLD_WIDTH - 32)
-        self.player.x = 33
+        self.assertEqual(self.player.x, WORLD_WIDTH - half)
+        self.player.x = half + 1
         self.key(pico2d.SDLK_d, False)
         self.key(pico2d.SDLK_a)
         self.player.update(0.1)
-        self.assertEqual(self.player.x, 32)
+        self.assertEqual(self.player.x, half)
 
     def test_focus_loss_clears_keys(self):
         self.key(pico2d.SDLK_d)

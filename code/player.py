@@ -5,6 +5,7 @@ from .settings import GROUND_HEIGHT, IMAGE_ROOT, SCREEN_HEIGHT, WORLD_WIDTH
 
 class Player:
     SIZE = 64
+    DRAW_SIZE = 96
     SPEED = 240.0
     GRAVITY = 1500.0
     JUMP_SPEED = 560.0
@@ -20,7 +21,7 @@ class Player:
             for state in ("idle", "run")
         }
         self.x = 200.0
-        self.y = GROUND_HEIGHT + self.SIZE / 2
+        self.y = GROUND_HEIGHT + self.DRAW_SIZE / 2
         self.keys = set()
         self.state = "idle"
         self.frame = 0.0
@@ -49,7 +50,7 @@ class Player:
                        else self.GRAVITY)
             self.y += self.velocity_y * dt - 0.5 * gravity * dt * dt
             self.velocity_y -= gravity * dt
-        half = self.SIZE / 2
+        half = self.DRAW_SIZE / 2
         self.x = max(half, min(self.x, WORLD_WIDTH - half))
         if self.y <= GROUND_HEIGHT + half:
             self.y = GROUND_HEIGHT + half
@@ -75,5 +76,5 @@ class Player:
         image.clip_composite_draw(
             column * self.SIZE, image.h - (row + 1) * self.SIZE,
             self.SIZE, self.SIZE, 0, "h" if self.facing > 0 else "",
-            round(self.x - camera_x), round(self.y), self.SIZE, self.SIZE,
+            round(self.x - camera_x), round(self.y), self.DRAW_SIZE, self.DRAW_SIZE,
         )
