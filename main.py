@@ -11,7 +11,7 @@ from code.settings import SCREEN_HEIGHT, SCREEN_WIDTH, WORLD_WIDTH
 
 
 def main():
-    pico2d.open_canvas(SCREEN_WIDTH, SCREEN_HEIGHT)
+    pico2d.open_canvas(SCREEN_WIDTH, SCREEN_HEIGHT, full=True)
     try:
         background = Background()
         player = Player()
