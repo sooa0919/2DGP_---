@@ -10,14 +10,15 @@ from .settings import (
 
 class Background:
     def __init__(self):
-        folder = IMAGE_ROOT / "background" / "background_layer" / "background3_jungle2"
+        scenery = IMAGE_ROOT / "background" / "grayscale"
+        folder = scenery / "background3_jungle2"
         self.layers = [
             pico2d.load_image(str(folder / f"plx-{i}.png"))
             for i in range(1, 6)
         ]
         self.scroll_rates = (0.0, 0.15, 0.3, 0.5, 0.75)
         self.tiles = pico2d.load_image(
-            str(IMAGE_ROOT / "background" / "tile" / "Tileset.png")
+            str(scenery / "Tileset.png")
         )
 
     def draw(self, camera_x):
