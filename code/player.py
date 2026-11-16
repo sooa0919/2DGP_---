@@ -71,8 +71,9 @@ class Player:
         image = self.images[self.state]
         columns = image.w // self.SIZE
         row, column = divmod(int(self.frame), columns)
+        # The source sprites face left, so flip them when facing right.
         image.clip_composite_draw(
             column * self.SIZE, image.h - (row + 1) * self.SIZE,
-            self.SIZE, self.SIZE, 0, "h" if self.facing < 0 else "",
+            self.SIZE, self.SIZE, 0, "h" if self.facing > 0 else "",
             round(self.x - camera_x), round(self.y), self.SIZE, self.SIZE,
         )
