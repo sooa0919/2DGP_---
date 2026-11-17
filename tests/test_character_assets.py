@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from PIL import Image, ImageOps
+from PIL import Image
 
 from code.player import Player
 from code.settings import IMAGE_ROOT
@@ -39,12 +39,43 @@ class CharacterAssetTests(unittest.TestCase):
                 self.player.draw(0)
                 self.assertEqual(self.player.current_images["run"].clip_composite_draw.call_args.args[5], flip)
 
-    def test_gray_run_matches_new_blue_sheet_and_preserves_alpha(self):
-        with Image.open(IMAGE_ROOT / "character/run/run_blue.png") as source, \
-             Image.open(IMAGE_ROOT / "background/grayscale/character/run.png") as gray:
-            source = source.convert("RGBA")
-            self.assertEqual(gray.size, (640, 64))
-            self.assertEqual(gray.getchannel("A").tobytes(), source.getchannel("A").tobytes())
-            luminance = ImageOps.grayscale(source).tobytes()
-            for channel in ("R", "G", "B"):
-                self.assertEqual(gray.getchannel(channel).tobytes(), luminance)
+    def test_supplied_grey_sheets_are_loaded_directly(self):
+        with patch("pico2d.load_image", return_value=Mock(w=640, h=64)) as load:
+            Player()
+        paths = [call.args[0] for call in load.call_args_list]
+        self.assertIn(str(IMAGE_ROOT / "character/run/run_grey.png"), paths)
+        self.assertIn(str(IMAGE_ROOT / "character/jump/jump_grey.png"), paths)
+        self.assertNotIn(str(IMAGE_ROOT / "background/grayscale/character/run.png"), paths)
+
+    def test_jump_rises_with_first_two_frames_and_falls_with_last_two(self):
+        for has_blue in (True, False):
+            self.player.has_blue = has_blue
+            self.player.grounded = False
+            for velocity, state, valid in ((100, "jump", (0, 1)), (-100, "fall", (2, 3))):
+                self.player.velocity_y = velocity
+                for _ in range(12):
+                    self.player._animate(0.1, 0)
+                    self.assertEqual(self.player.state, state)
+                    self.assertIn(int(self.player.frame), valid)
+                    self.player.draw(0)
+                    args = self.player.current_images[state].clip_composite_draw.call_args.args
+                    self.assertIn(args[0], [frame * 64 for frame in valid])
+            self.player.grounded = True
+            self.player._animate(0.1, 0)
+            self.assertEqual(self.player.state, "idle")
+            self.player._animate(0.1, 1)
+            self.assertEqual(self.player.state, "run")
+
+    def test_run_size_and_foot_alignment_match_visible_pixels_in_every_frame(self):
+        for has_blue, color in ((True, "blue"), (False, "grey")):
+            self.player.has_blue = has_blue
+            self.player.state = "run"
+            with Image.open(IMAGE_ROOT / f"character/run/run_{color}.png") as sheet:
+                for frame in range(10):
+                    self.player.frame = frame
+                    self.player.draw(0)
+                    args = self.player.current_images["run"].clip_composite_draw.call_args.args
+                    self.assertEqual(args[-2:], (80, 80))
+                    bottom_row = sheet.crop((frame * 64, 0, (frame + 1) * 64, 64)).getbbox()[3]
+                    visible_bottom = args[7] - 40 + (64 - bottom_row) * 80 / 64
+                    self.assertAlmostEqual(visible_bottom, self.player.bottom, delta=0.5)

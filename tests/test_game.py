@@ -80,7 +80,7 @@ class PlatformerTests(unittest.TestCase):
         self.player.update(0.1)
         self.assertEqual(self.player.x, 200)
         self.key(pico2d.SDLK_a, False)
-        half = Player.DRAW_SIZE / 2
+        half = Player.HALF_WIDTH
         self.player.x = WORLD_WIDTH - half - 1
         self.player.update(0.1)
         self.assertEqual(self.player.x, WORLD_WIDTH - half)
@@ -113,7 +113,7 @@ class PlatformerTests(unittest.TestCase):
                 p = self.player
                 foot = p.y - p.DRAW_SIZE / 2
                 if p.grounded:
-                    half = p.DRAW_SIZE / 2
+                    half = p.HALF_WIDTH
                     ahead = any(s.left > p.x and s.left - (p.x + half) < 40
                                 and s.top > foot + 1 and s.bottom < p.y + half
                                 for s in level.platforms)
@@ -137,7 +137,7 @@ class PlatformerTests(unittest.TestCase):
         self.player.enter_level(level)
         self.key(pico2d.SDLK_d)
         self.player.update(1)
-        self.assertEqual(self.player.x, 320 - Player.DRAW_SIZE / 2)
+        self.assertEqual(self.player.x, 320 - Player.HALF_WIDTH)
         self.key(pico2d.SDLK_SPACE)
         self.player.update(0.7)
         self.assertTrue(self.player.grounded)
@@ -151,8 +151,8 @@ class PlatformerTests(unittest.TestCase):
         level.platforms.append(Platform(128, 208, 288, 240))
         self.key(pico2d.SDLK_SPACE, False)
         self.key(pico2d.SDLK_SPACE)
-        self.player.update(0.1)
-        self.assertLessEqual(self.player.y + Player.DRAW_SIZE / 2, 208)
+        self.player.update(0.12)
+        self.assertLessEqual(self.player.top, 208)
         self.assertLessEqual(self.player.velocity_y, 0)
 
     def test_respawn_resets_motion(self):
@@ -164,6 +164,66 @@ class PlatformerTests(unittest.TestCase):
         self.assertFalse(self.player.keys)
         self.assertEqual(self.player.velocity_y, 0)
         self.assertTrue(self.player.grounded)
+
+    def test_holding_movement_at_either_wall_keeps_run_animation(self):
+        for direction, key in ((1, pico2d.SDLK_d), (-1, pico2d.SDLK_a)):
+            level = Level()
+            level.platforms = [Platform(0, 0, 320, 96 if direction == 1 else 160),
+                               Platform(320, 0, 640, 160 if direction == 1 else 96)]
+            self.player.enter_level(level)
+            self.player.x = 200 if direction == 1 else 440
+            self.key(key)
+            self.player.update(1)
+            contact_x = 320 - direction * Player.HALF_WIDTH
+            self.assertEqual(self.player.x, contact_x)
+            self.assertEqual((self.player.state, self.player.facing), ("run", direction))
+            frame = self.player.frame
+            self.player.update(0.05)
+            self.assertEqual(self.player.x, contact_x)
+            self.assertNotEqual(self.player.frame, frame)
+            self.key(key, False)
+            self.player.update(0.05)
+            self.assertEqual(self.player.state, "idle")
+
+    def test_body_can_approach_wall_past_transparent_frame_margin(self):
+        level = Level()
+        level.platforms = [Platform(0, 0, 320, 96), Platform(320, 0, 640, 160)]
+        self.player.enter_level(level)
+        self.player.x = 320 - Player.DRAW_SIZE / 2
+        self.key(pico2d.SDLK_d)
+        self.player.update(0.02)
+        self.assertGreater(self.player.x, 320 - Player.DRAW_SIZE / 2)
+        self.assertLess(self.player.right, 320)
+        self.player.update(0.5)
+        self.assertEqual(self.player.right, 320)
+
+    def test_ledge_support_uses_feet_and_not_the_cloak(self):
+        level = Level()
+        level.platforms = [Platform(0, 0, 320, 96)]
+        self.player.enter_level(level)
+        self.player.x = 319
+        self.player.update(0.05)
+        self.assertEqual(self.player.bottom, 96)
+        self.player.x = 320 + Player.FOOT_HALF_WIDTH + 1
+        self.assertLess(self.player.left, 320)
+        self.player.update(0.05)
+        self.assertFalse(self.player.grounded)
+        self.assertLess(self.player.bottom, 96)
+
+    def test_head_collision_uses_body_height_in_a_low_passage(self):
+        level = Level()
+        level.platforms = [Platform(0, 0, 640, 96), Platform(256, 160, 448, 192)]
+        self.player.enter_level(level)
+        self.key(pico2d.SDLK_d)
+        self.player.update(0.5)
+        self.assertAlmostEqual(self.player.x, 320)
+        self.assertEqual(self.player.bottom, 96)
+        self.assertLessEqual(self.player.top, 160)
+        self.key(pico2d.SDLK_d, False)
+        self.key(pico2d.SDLK_SPACE)
+        self.player.update(0.05)
+        self.assertLessEqual(self.player.top, 160)
+        self.assertLessEqual(self.player.velocity_y, 0)
 
     def test_single_forest_ignores_e_and_updates_water_animation(self):
         import main as game
