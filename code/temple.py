@@ -24,21 +24,21 @@ class TempleBackground(Background):
             x = col * 32 - offset % 32 + 16
             for row in range(21):
                 self.sheet.opacify(.22)
-                self.tile(160 + (col % 3) * 16, 224 + (row % 3) * 16, x, row * 32 + 16)
+                self.tile(176, 256 + (row % 2) * 16, x, row * 32 + 16)
         self.sheet.opacify(.48)
         for world_x in range(96, self.level.width, 448):
             x = world_x - camera_x * .55
             if -64 < x < SCREEN_WIDTH + 64:
                 for y in range(192, 576 - (world_x // 448 % 3) * 64, 32):
-                    self.tile(80, 192 + (y // 32 % 2) * 16, x, y)
+                    self.tile(96, 272 + (y // 32 % 2) * 16, x, y)
         self.sheet.opacify(1)
         first = math.floor(camera_x / 32)
         last = math.ceil((camera_x + SCREEN_WIDTH) / 32)
         for (col, row), tile in self.terrain.items():
             if first <= col < last:
                 # Worn stone lips above plain temple brick; no forest moss.
-                sx, sy = ((80 + (col % 3) * 16, 144) if tile in (1, 2, 3)
-                          else (80 + (col % 3) * 16, 192 + row % 2 * 16))
+                sx, sy = ((144 + (col % 3) * 16, 144) if tile in (1, 2, 3)
+                          else (96, 240 + row % 2 * 16))
                 self.tile(sx, sy, col * 32 + 16 - round(camera_x), row * 32 + 16)
 
     def draw_overlay(self, camera_x, player):

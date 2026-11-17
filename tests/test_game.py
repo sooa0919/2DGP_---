@@ -225,12 +225,13 @@ class PlatformerTests(unittest.TestCase):
         self.assertLessEqual(self.player.top, 160)
         self.assertLessEqual(self.player.velocity_y, 0)
 
-    def test_single_forest_ignores_e_and_updates_water_animation(self):
+    def test_tutorial_ignores_e_and_updates_water_animation(self):
         import main as game
         scene = Mock()
         events = iter([[SimpleNamespace(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_e)],
                        [SimpleNamespace(type=pico2d.SDL_QUIT)]])
         with patch.object(game, "Background", return_value=scene) as factory, \
+             patch.object(game, "Tutorial", return_value=Mock(paused=False)), \
              patch.object(game, "Player", return_value=self.player), \
              patch.object(game, "configure_fullscreen"), \
              patch.object(game, "clear_canvas"), \

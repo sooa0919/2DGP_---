@@ -28,6 +28,8 @@ class ColorSystem:
         elif event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_r:
             player.enter_level(level)
             self.left_down = False
+            self.last_transfer = None
+            self.transfer_serial = 0
         elif event.type == pico2d.SDL_MOUSEBUTTONDOWN and event.button == pico2d.SDL_BUTTON_LEFT:
             if not self.left_down:
                 # SDL logical-size rendering already maps mouse events to the game view.

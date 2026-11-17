@@ -21,6 +21,7 @@ class Water:
     top: int
     has_blue: bool = False
     animation_time: float = 0.0
+    is_waterfall: bool = False
 
     @property
     def solid(self):
