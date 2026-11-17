@@ -56,6 +56,9 @@ def main():
         colors.interact_at(736, 200, level, player)
         tutorial.update(.1, level, player, colors)
         render(0).save(out / 'tutorial_blue.png')
+        tutorial.message = None
+        player.x, player.y = 800, 132
+        render(0).save(out / 'tutorial_water.png')
         frames = []
         for _ in range(16):
             bg.update(.08)
