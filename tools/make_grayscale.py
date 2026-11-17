@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageOps
 
 
 BACKGROUND_ROOT = Path(__file__).resolve().parent.parent / "image" / "background"
@@ -45,13 +45,6 @@ def main():
             folder = OUTPUT_ROOT / "objects" / "Rock"
             folder.mkdir(parents=True, exist_ok=True)
             gray.save(folder / f"{name}.png")
-    for name, text in (("press_e", "PRESS E  >  NEXT MAP"),
-                       ("grove", "01 / SILENT GROVE"),
-                       ("temple", "02 / FORGOTTEN TEMPLE"),
-                       ("controls", "A D MOVE   W JUMP   S FALL   E ENTER")):
-        label = Image.new("RGBA", (len(text) * 7 + 16, 26), (12, 12, 12, 225))
-        ImageDraw.Draw(label).text((8, 6), text, fill="white")
-        label.resize((label.width * 2, label.height * 2), Image.Resampling.NEAREST).save(OUTPUT_ROOT / f"{name}.png")
 
 
 if __name__ == "__main__":
