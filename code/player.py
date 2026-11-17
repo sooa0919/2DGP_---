@@ -6,6 +6,8 @@ from .settings import GROUND_HEIGHT, IMAGE_ROOT, SCREEN_HEIGHT, WORLD_WIDTH
 class Player:
     SIZE = 64
     DRAW_SIZE = 72
+    RUN_DRAW_SIZE = 74
+    RUN_DRAW_OFFSET_Y = -2
     SPEED = 240.0
     GRAVITY = 1500.0
     JUMP_SPEED = 560.0
@@ -147,10 +149,12 @@ class Player:
         row, column = divmod(int(self.frame), columns)
         # Updated run sprites face right; idle sprites face left.
         flip = (self.facing < 0) if self.state == "run" else (self.facing > 0)
+        draw_size = self.RUN_DRAW_SIZE if self.state == "run" else self.DRAW_SIZE
+        offset_y = self.RUN_DRAW_OFFSET_Y if self.state == "run" else 0
         image.clip_composite_draw(
             column * self.SIZE, image.h - (row + 1) * self.SIZE,
             self.SIZE, self.SIZE, 0, "h" if flip else "",
-            round(self.x - camera_x), round(self.y), self.DRAW_SIZE, self.DRAW_SIZE,
+            round(self.x - camera_x), round(self.y + offset_y), draw_size, draw_size,
         )
 
     @property
