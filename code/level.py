@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 
 from .settings import TILE_SIZE
+from .scenery import PROP_BOUNDS
 
 
 @dataclass(frozen=True)
@@ -39,15 +40,11 @@ class Level:
             if i in (4, 8, 11):
                 left, right = (a + 2) * 32, min(b - 2, a + 9) * 32
                 self.platforms += [Platform(a * 32, 0, left, h * 32),
-                                   Platform(left, 0, right, (h - 2) * 32),
+                                   Platform(left, 0, right, (h - 1) * 32),
                                    Platform(right, 0, b * 32, h * 32)]
-                self.water.append(Water(left, (h - 2) * 32, right, h * 32))
+                self.water.append(Water(left, (h - 1) * 32, right, h * 32))
             else:
                 self.platforms.append(Platform(a * 32, 0, b * 32, h * 32))
-        # Optional higher ledges provide a second route over parts of the path.
-        ledges = ([(8, 14, 6), (88, 94, 9)], [(8, 13, 6), (98, 103, 8)])
-        self.platforms += [Platform(a * 32, (h - 2) * 32, b * 32, h * 32)
-                           for a, b, h in ledges[self.index]]
         self.width = 120 * TILE_SIZE
         self.spawn = (200.0, 96.0)
         self.exit_x = self.width - 160
@@ -58,19 +55,19 @@ class Level:
             kinds = ("Willows/1", "Rock/low", "Trees/2", "Ridges/1",
                      "Rock/moss", "Willows/2", "Rock/low", "Trees/3")
         else:
-            kinds = ("Swamp/pillar", "Swamp/monolith", "Ruins/statue",
-                     "Swamp/broken_pillar", "Swamp/rubble", "Stones/1")
-        # Use the original dry banks, rather than anchoring props inside pools.
-        for i, (a, b, h) in enumerate(routes[self.index]):
+            kinds = ("Stones/2", "Rock/moss", "Ruins/statue",
+                     "Stones/3", "Ridges/1", "Stones/1")
+        # Keep the whole visible sprite above one continuous, dry surface.
+        dry = [p for p in self.platforms if p.right - p.left >= 96
+               and not any(w.left <= p.left and p.right <= w.right for w in self.water)]
+        for i, platform in enumerate(dry):
             kind = kinds[i % len(kinds)]
-            scale = 2.0 if self.index == 0 else (1.4 if kind == "Swamp/monolith" else 2.5)
-            self.objects.append((kind, (a + 2) * 32 - 16, h * 32, scale))
-            if i not in (4, 8, 11) and b - a >= 7:
-                self.objects.append(("Bushes/3" if self.index == 0 else "Rock/low",
-                                     (b - 2) * 32, h * 32, 1.5))
+            left, _, right, _ = PROP_BOUNDS[kind]
+            scale = min(2.0 if self.index == 0 else 2.3,
+                        (platform.right - platform.left - 32) / (right - left))
+            self.objects.append((kind, (platform.left + platform.right) / 2,
+                                 platform.top, scale))
         self.objects += [("Pointers/1", self.exit_x - 120, 96, 2.5)]
-        self.objects.append(("Trees/1" if self.index == 0 else "Swamp/monolith",
-                             self.exit_x + 64, 96, 2.0 if self.index == 0 else 1.4))
 
     def can_exit(self, player):
         return (player.grounded and abs(player.x - self.exit_x) <= 80
