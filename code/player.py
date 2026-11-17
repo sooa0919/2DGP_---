@@ -1,5 +1,6 @@
 import pico2d
 
+from .dust import RunDust
 from .settings import GROUND_HEIGHT, IMAGE_ROOT, SCREEN_HEIGHT, WORLD_WIDTH
 
 
@@ -11,7 +12,7 @@ class Player:
     JUMP_SPEED = 560.0
     FAST_FALL_GRAVITY = 3000.0
     ANIMATION_FPS = {"idle": 8.0, "run": 10.0}
-    MOVEMENT_KEYS = (pico2d.SDLK_w, pico2d.SDLK_a, pico2d.SDLK_s, pico2d.SDLK_d)
+    MOVEMENT_KEYS = (pico2d.SDLK_SPACE, pico2d.SDLK_a, pico2d.SDLK_s, pico2d.SDLK_d)
 
     def __init__(self, level=None):
         self.level = level
@@ -29,13 +30,14 @@ class Player:
         self.facing = 1
         self.velocity_y = 0.0
         self.grounded = True
+        self.dust = RunDust()
 
     def handle_event(self, event):
         if event.type == pico2d.SDL_WINDOWEVENT:
             if event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
                 self.keys.clear()
         elif event.type == pico2d.SDL_KEYDOWN and event.key in self.MOVEMENT_KEYS:
-            if event.key == pico2d.SDLK_w and event.key not in self.keys and self.grounded:
+            if event.key == pico2d.SDLK_SPACE and event.key not in self.keys and self.grounded:
                 self.velocity_y = self.JUMP_SPEED
                 self.grounded = False
             self.keys.add(event.key)
@@ -78,6 +80,7 @@ class Player:
         self.grounded = True
         self.state, self.frame = "idle", 0.0
         self.keys.clear()
+        self.dust.clear()
 
     @property
     def in_water(self):
@@ -133,8 +136,10 @@ class Player:
         image = self.images[self.state]
         count = (image.w // self.SIZE) * (image.h // self.SIZE)
         self.frame = (self.frame + self.ANIMATION_FPS[self.state] * dt) % count
+        self.dust.update(dt, self, old_x)
 
     def draw(self, camera_x):
+        self.dust.draw(camera_x)
         image = self.images[self.state]
         columns = image.w // self.SIZE
         row, column = divmod(int(self.frame), columns)

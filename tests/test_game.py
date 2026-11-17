@@ -1,6 +1,6 @@
 import unittest
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pico2d
 
@@ -33,13 +33,13 @@ class PlatformerTests(unittest.TestCase):
 
     def test_jump_no_double_jump_and_landing(self):
         floor = GROUND_HEIGHT + Player.DRAW_SIZE / 2
-        self.key(pico2d.SDLK_w)
+        self.key(pico2d.SDLK_SPACE)
         self.player.update(0.1)
         self.assertGreater(self.player.y, floor)
         self.assertFalse(self.player.grounded)
         velocity = self.player.velocity_y
-        self.key(pico2d.SDLK_w, False)
-        self.key(pico2d.SDLK_w)
+        self.key(pico2d.SDLK_SPACE, False)
+        self.key(pico2d.SDLK_SPACE)
         self.assertEqual(self.player.velocity_y, velocity)
         for _ in range(120):
             self.player.update(1 / 60)
@@ -48,14 +48,68 @@ class PlatformerTests(unittest.TestCase):
         self.assertEqual(self.player.state, "idle")
 
     def test_holding_jump_does_not_repeat_on_landing(self):
-        self.key(pico2d.SDLK_w)
+        self.key(pico2d.SDLK_SPACE)
         for _ in range(120):
             self.player.update(1 / 60)
-            self.key(pico2d.SDLK_w)
+            self.key(pico2d.SDLK_SPACE)
         self.assertTrue(self.player.grounded)
 
-    def test_fast_fall_and_ground_collision(self):
+    def test_w_no_longer_jumps_and_space_does(self):
         self.key(pico2d.SDLK_w)
+        self.assertTrue(self.player.grounded)
+        self.assertEqual(self.player.velocity_y, 0)
+        self.key(pico2d.SDLK_SPACE)
+        self.assertFalse(self.player.grounded)
+        self.assertEqual(self.player.velocity_y, Player.JUMP_SPEED)
+
+    def test_running_smoke_animates_behind_each_direction_and_expires(self):
+        for key, facing in ((pico2d.SDLK_d, 1), (pico2d.SDLK_a, -1)):
+            self.player.enter_level(Level())
+            self.key(key)
+            self.player.update(0.05)
+            dust = self.player.dust
+            self.assertEqual(len(dust.puffs), 1)
+            puff = dust.puffs[0]
+            self.assertGreater((self.player.x - puff.x) * facing, 0)
+            world_x = puff.x
+            self.player.update(0.06)
+            self.assertEqual(puff.x, world_x)
+            dust.image = Mock()
+            dust.draw(100)
+            args = dust.image.clip_composite_draw.call_args.args
+            self.assertEqual(args[0], 64)
+            self.assertEqual(args[5], "h" if facing < 0 else "")
+            self.assertEqual(args[6], round(world_x - 100))
+            self.key(key, False)
+            self.player.update(0.5)
+            self.assertFalse(dust.puffs)
+
+    def test_smoke_stops_in_air_water_and_at_walls_and_clears_on_map_change(self):
+        self.player.enter_level(Level())
+        self.key(pico2d.SDLK_d)
+        self.key(pico2d.SDLK_SPACE)
+        self.player.update(0.1)
+        self.assertFalse(self.player.dust.puffs)
+        level = Level()
+        self.player.enter_level(level)
+        self.key(pico2d.SDLK_d)
+        self.player.x = 512 - Player.DRAW_SIZE / 2
+        self.player.update(0.1)
+        self.assertFalse(self.player.dust.puffs)
+        pool = level.water[0]
+        self.player.x = (pool.left + pool.right) / 2
+        self.player.y = pool.bottom + Player.DRAW_SIZE / 2
+        self.player.update(0.1)
+        self.assertFalse(self.player.dust.puffs)
+        self.player.enter_level(level)
+        self.key(pico2d.SDLK_d)
+        self.player.update(0.1)
+        self.assertTrue(self.player.dust.puffs)
+        self.player.enter_level(Level(1))
+        self.assertFalse(self.player.dust.puffs)
+
+    def test_fast_fall_and_ground_collision(self):
+        self.key(pico2d.SDLK_SPACE)
         self.player.update(0.1)
         velocity = self.player.velocity_y
         self.key(pico2d.SDLK_s)
@@ -114,9 +168,9 @@ class PlatformerTests(unittest.TestCase):
                            and not any(s.left == support.right and s.bottom == 0
                                        for s in level.platforms))
                     if ahead or gap:
-                        self.key(pico2d.SDLK_w)
+                        self.key(pico2d.SDLK_SPACE)
                 self.player.update(1 / 60)
-                self.key(pico2d.SDLK_w, False)
+                self.key(pico2d.SDLK_SPACE, False)
                 if level.can_exit(self.player):
                     break
             self.assertTrue(level.can_exit(self.player),
@@ -129,7 +183,7 @@ class PlatformerTests(unittest.TestCase):
         self.key(pico2d.SDLK_d)
         self.player.update(1)
         self.assertEqual(self.player.x, 320 - Player.DRAW_SIZE / 2)
-        self.key(pico2d.SDLK_w)
+        self.key(pico2d.SDLK_SPACE)
         self.player.update(0.7)
         self.assertTrue(self.player.grounded)
         self.assertEqual(self.player.y, 160 + Player.DRAW_SIZE / 2)
@@ -140,8 +194,8 @@ class PlatformerTests(unittest.TestCase):
         self.assertEqual(self.player.x, level.spawn[0])
         self.assertTrue(self.player.grounded)
         level.platforms.append(Platform(128, 208, 288, 240))
-        self.key(pico2d.SDLK_w, False)
-        self.key(pico2d.SDLK_w)
+        self.key(pico2d.SDLK_SPACE, False)
+        self.key(pico2d.SDLK_SPACE)
         self.player.update(0.1)
         self.assertLessEqual(self.player.y + Player.DRAW_SIZE / 2, 208)
         self.assertLessEqual(self.player.velocity_y, 0)
@@ -214,7 +268,7 @@ class PlatformerTests(unittest.TestCase):
                 self.assertEqual(self.player.y, pool.bottom + 40)
                 self.assertTrue(self.player.grounded)
                 self.assertTrue(self.player.in_water)
-                self.key(pico2d.SDLK_w)
+                self.key(pico2d.SDLK_SPACE)
                 self.player.update(0.17)
                 self.assertGreater(self.player.y - 40, pool.top)
                 self.assertFalse(self.player.in_water)

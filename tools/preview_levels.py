@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from PIL import Image, ImageOps
+import pico2d
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from code.background import Background
@@ -51,7 +52,8 @@ def main():
             background = Background(level)
             player = Player(level)
             player.enter_level(level)
-            for label, camera in (("start", 0), ("middle", 1100), ("water", 2200), ("exit", level.width - 1152)):
+            for label, camera in (("start", 0), ("middle", 1100), ("water", 2200),
+                                  ("exit", level.width - 1152), ("run_right", 0), ("run_left", 0)):
                 canvas = Image.new("RGB", (1152, 648))
                 if label == "exit":
                     player.x, player.y = level.exit_x, level.exit_y + player.DRAW_SIZE / 2
@@ -59,6 +61,13 @@ def main():
                     pool = level.water[1]
                     player.x = (pool.left + pool.right) / 2
                     player.y = pool.bottom + player.DRAW_SIZE / 2
+                elif label.startswith("run_"):
+                    player.enter_level(level)
+                    if label == "run_left":
+                        player.x = 420
+                    player.keys.add(pico2d.SDLK_d if label == "run_right" else pico2d.SDLK_a)
+                    for _ in range(24):
+                        player.update(1 / 60)
                 background.draw(camera)
                 player.draw(camera)
                 background.draw_overlay(camera, player)
