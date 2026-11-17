@@ -19,8 +19,9 @@ def main():
     root = BACKGROUND_ROOT.parent
     sources.extend((p, OUTPUT_ROOT / "tiles" / p.name)
                    for p in (BACKGROUND_ROOT / "tile").glob("Tile_*.png"))
-    sources.extend((p, OUTPUT_ROOT / "temple" / p.name)
-                   for p in (BACKGROUND_ROOT / "background_layer" / "backgroun1_temple").glob("*.png"))
+    sources.extend((BACKGROUND_ROOT / "tile" / name, OUTPUT_ROOT / "water" / target)
+                   for name, target in (("GandalfHardcore Water Tiles sheet.png", "surface.png"),
+                                        ("GandalfHardcore Animated Water Tiles.png", "falls.png")))
     sources.extend((p, OUTPUT_ROOT / "objects" / p.relative_to(root / "object" / "Objects"))
                    for p in (root / "object" / "Objects").glob("*/*.png"))
     sources.extend((root / "character" / state / f"{state}_blue.png",

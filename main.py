@@ -21,7 +21,6 @@ def main():
         player = Player(level)
         player.enter_level(level)
         camera = Camera(SCREEN_WIDTH, level.width)
-        interaction_down = False
         previous = perf_counter()
         running = True
         while running:
@@ -35,21 +34,11 @@ def main():
                 ):
                     running = False
                 else:
-                    if event.type == pico2d.SDL_KEYUP and event.key == pico2d.SDLK_e:
-                        interaction_down = False
-                    if event.type == pico2d.SDL_WINDOWEVENT and event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
-                        interaction_down = False
-                    if event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_e:
-                        if not interaction_down and level.can_exit(player):
-                            level = Level(level.index + 1)
-                            background = Background(level)
-                            player.enter_level(level)
-                            camera = Camera(SCREEN_WIDTH, level.width)
-                        interaction_down = True
                     player.handle_event(event)
             if not running:
                 break
             player.update(dt)
+            background.update(dt)
             camera.follow(player.x)
             clear_canvas()
             background.draw(camera.x)

@@ -1,4 +1,4 @@
-"""Map geometry shared by drawing, collisions and exits (world coordinates)."""
+"""A single forest route: valleys, wooded hills and a waterfall basin."""
 from dataclasses import dataclass
 
 from .settings import TILE_SIZE
@@ -21,57 +21,69 @@ class Water:
     top: int
 
 
+@dataclass(frozen=True)
+class Waterfall:
+    left: int
+    bottom: int
+    top: int
+    width: int = 32
+
+
 class Level:
-    def __init__(self, index=0):
-        self.index = index % 2
-        self.name = ("SILENT GROVE", "FORGOTTEN TEMPLE")[self.index]
-        # Column ranges, surface height in tiles. Missing columns are jump gaps.
-        routes = (
-            [(0, 16, 3), (16, 23, 5), (23, 30, 7), (30, 38, 5),
-             (41, 50, 4), (50, 57, 6), (57, 64, 8), (64, 72, 6),
-             (75, 84, 4), (84, 91, 6), (91, 99, 5), (99, 120, 3)],
-            [(0, 14, 3), (14, 21, 5), (21, 28, 7), (28, 36, 9),
-             (39, 47, 8), (47, 54, 6), (54, 62, 4), (65, 73, 4),
-             (73, 80, 6), (80, 87, 8), (87, 95, 6), (95, 120, 3)],
-        )
+    def __init__(self):
+        self.name = "SILENT GROVE"
+        # Broad lowlands, smaller rises, a wooded ridge, then an open river.
+        route = [(0, 10, 3), (10, 18, 2), (18, 24, 3), (24, 30, 4),
+                 (30, 36, 5), (36, 43, 6), (43, 49, 5), (49, 55, 4),
+                 (55, 60, 3), (60, 66, 4), (66, 70, 5), (70, 76, 7),
+                 (76, 90, 3), (90, 96, 4), (96, 102, 5), (102, 108, 4),
+                 (108, 114, 3), (114, 126, 2), (126, 132, 3),
+                 (132, 138, 4), (138, 145, 3), (145, 160, 3)]
+        self.water = [Water(70 * 32, 6 * 32, 76 * 32, 7 * 32),
+                      Water(76 * 32, 2 * 32, 89 * 32, 3 * 32),
+                      Water(115 * 32, 32, 123 * 32, 2 * 32)]
+        self.waterfalls = [Waterfall(76 * 32, 3 * 32, 7 * 32)]
         self.platforms = []
-        self.water = []
-        for i, (a, b, h) in enumerate(routes[self.index]):
-            if i in (4, 8, 11):
-                left, right = (a + 2) * 32, min(b - 2, a + 9) * 32
-                self.platforms += [Platform(a * 32, 0, left, h * 32),
-                                   Platform(left, 0, right, (h - 1) * 32),
-                                   Platform(right, 0, b * 32, h * 32)]
-                self.water.append(Water(left, (h - 1) * 32, right, h * 32))
-            else:
-                self.platforms.append(Platform(a * 32, 0, b * 32, h * 32))
-        self.width = 120 * TILE_SIZE
+        for a, b, h in route:
+            cuts = {a * 32, b * 32}
+            for pool in self.water:
+                if a * 32 < pool.left < b * 32:
+                    cuts.add(pool.left)
+                if a * 32 < pool.right < b * 32:
+                    cuts.add(pool.right)
+            edges = sorted(cuts)
+            for left, right in zip(edges, edges[1:]):
+                pool = next((w for w in self.water if w.left <= left and right <= w.right), None)
+                self.platforms.append(Platform(left, 0, right, pool.bottom if pool else h * 32))
+        self.width = 160 * TILE_SIZE
         self.spawn = (200.0, 96.0)
-        self.exit_x = self.width - 160
-        self.exit_y = 96
-        # Decorations are anchored to the actual surface, away from jump lips.
+        self.end_x = self.width - 160
         self.objects = []
-        if self.index == 0:
-            kinds = ("Willows/1", "Rock/low", "Trees/2", "Ridges/1",
-                     "Rock/moss", "Willows/2", "Rock/low", "Trees/3")
-        else:
-            kinds = ("Stones/2", "Rock/moss", "Ruins/statue",
-                     "Stones/3", "Ridges/1", "Stones/1")
-        # Keep the whole visible sprite above one continuous, dry surface.
+        kinds = ("Willows/1", "Trees/1", "Rock/moss", "Trees/2",
+                 "Ridges/1", "Willows/2", "Rock/low", "Trees/3")
         dry = [p for p in self.platforms if p.right - p.left >= 96
                and not any(w.left <= p.left and p.right <= w.right for w in self.water)]
         for i, platform in enumerate(dry):
+            # Main silhouettes are clustered with shrubs, grass and small rocks.
             kind = kinds[i % len(kinds)]
-            left, _, right, _ = PROP_BOUNDS[kind]
-            scale = min(2.0 if self.index == 0 else 2.3,
-                        (platform.right - platform.left - 32) / (right - left))
-            self.objects.append((kind, (platform.left + platform.right) / 2,
-                                 platform.top, scale))
-        self.objects += [("Pointers/1", self.exit_x - 120, 96, 2.5)]
+            self._place(kind, platform, 0.47 if i % 2 else 0.57,
+                        2.0 if "Rock" not in kind else 1.7)
+            if platform.right - platform.left >= 160:
+                self._place("Bushes/3" if i % 2 else "Rock/low", platform, 0.14, 1.4)
+                self._place("Grass/3", platform, 0.86, 1.8)
+        self._place("Willows/1", dry[-1], 0.74, 2.3)
 
-    def can_exit(self, player):
-        return (player.grounded and abs(player.x - self.exit_x) <= 80
-                and abs(player.y - player.DRAW_SIZE / 2 - self.exit_y) < 3)
+    def _place(self, kind, platform, fraction, preferred_scale):
+        left, _, right, _ = PROP_BOUNDS[kind]
+        scale = min(preferred_scale, (platform.right - platform.left - 24) / (right - left))
+        half = (right - left) * scale / 2
+        x = max(platform.left + half + 12,
+                min(platform.left + (platform.right - platform.left) * fraction,
+                    platform.right - half - 12))
+        self.objects.append((kind, x, platform.top, scale))
+
+    def at_end(self, player):
+        return player.grounded and player.x >= self.end_x
 
     def terrain_tiles(self):
         cells = {(x, y) for p in self.platforms
@@ -80,7 +92,9 @@ class Level:
         tiles = {}
         for x, y in cells:
             left, right = (x - 1, y) in cells, (x + 1, y) in cells
-            if (x, y + 1) not in cells:
+            submerged = any(w.left <= x * 32 < w.right and (y + 1) * 32 == w.bottom
+                            for w in self.water)
+            if (x, y + 1) not in cells and not submerged:
                 tile = 1 if not left else (3 if not right else 2)
             else:
                 tile = 11 if not left else (13 if not right else 12)

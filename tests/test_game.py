@@ -93,9 +93,13 @@ class PlatformerTests(unittest.TestCase):
         level = Level()
         self.player.enter_level(level)
         self.key(pico2d.SDLK_d)
+        level.platforms = [Platform(0, 0, 512, 96), Platform(512, 0, 640, 160)]
         self.player.x = 512 - Player.DRAW_SIZE / 2
         self.player.update(0.1)
         self.assertFalse(self.player.dust.puffs)
+        level = Level()
+        self.player.enter_level(level)
+        self.key(pico2d.SDLK_d)
         pool = level.water[0]
         self.player.x = (pool.left + pool.right) / 2
         self.player.y = pool.bottom + Player.DRAW_SIZE / 2
@@ -105,7 +109,7 @@ class PlatformerTests(unittest.TestCase):
         self.key(pico2d.SDLK_d)
         self.player.update(0.1)
         self.assertTrue(self.player.dust.puffs)
-        self.player.enter_level(Level(1))
+        self.player.enter_level(Level())
         self.assertFalse(self.player.dust.puffs)
 
     def test_fast_fall_and_ground_collision(self):
@@ -149,9 +153,9 @@ class PlatformerTests(unittest.TestCase):
             camera.follow(target)
             self.assertEqual(camera.x, expected)
 
-    def test_both_routes_are_traversable_with_actual_jump_physics(self):
-        for index in (0, 1):
-            level = Level(index)
+    def test_forest_route_is_traversable_with_actual_jump_physics(self):
+        for index in (0,):
+            level = Level()
             self.player.enter_level(level)
             self.key(pico2d.SDLK_d)
             for _ in range(2400):
@@ -171,9 +175,9 @@ class PlatformerTests(unittest.TestCase):
                         self.key(pico2d.SDLK_SPACE)
                 self.player.update(1 / 60)
                 self.key(pico2d.SDLK_SPACE, False)
-                if level.can_exit(self.player):
+                if level.at_end(self.player):
                     break
-            self.assertTrue(level.can_exit(self.player),
+            self.assertTrue(level.at_end(self.player),
                             (index, self.player.x, self.player.y))
 
     def test_wall_ceiling_walk_off_and_respawn(self):
@@ -200,51 +204,33 @@ class PlatformerTests(unittest.TestCase):
         self.assertLessEqual(self.player.y + Player.DRAW_SIZE / 2, 208)
         self.assertLessEqual(self.player.velocity_y, 0)
 
-    def test_exit_requires_nearby_grounded_player_and_level_resets_motion(self):
-        level = Level()
-        self.player.enter_level(level)
-        self.assertFalse(level.can_exit(self.player))
-        self.player.x = level.exit_x
-        self.assertTrue(level.can_exit(self.player))
-        self.player.grounded = False
-        self.assertFalse(level.can_exit(self.player))
+    def test_respawn_resets_motion_and_smoke(self):
+        self.player.enter_level(Level())
         self.key(pico2d.SDLK_d)
+        self.player.update(0.1)
         self.player.velocity_y = -500
-        self.player.enter_level(Level(1))
+        self.player.enter_level(Level())
         self.assertFalse(self.player.keys)
+        self.assertFalse(self.player.dust.puffs)
         self.assertEqual(self.player.velocity_y, 0)
         self.assertTrue(self.player.grounded)
 
-    def test_main_switches_maps_only_on_fresh_e_at_exit(self):
+    def test_single_forest_ignores_e_and_updates_water_animation(self):
         import main as game
-        active = self.player
-        scenes = []
-
-        def background(level):
-            scenes.append(level.index)
-            return SimpleNamespace(draw=lambda x: None, draw_overlay=lambda x, p: None)
-
-        def events():
-            frame = events.frame
-            events.frame += 1
-            if frame in (2, 3, 5):
-                active.x = active.level.exit_x
-                active.y = active.level.exit_y + active.DRAW_SIZE / 2
-            if frame == 6:
-                return [SimpleNamespace(type=pico2d.SDL_QUIT)]
-            return [SimpleNamespace(type=pico2d.SDL_KEYUP if frame in (1, 4) else pico2d.SDL_KEYDOWN,
-                                    key=pico2d.SDLK_e)]
-
-        events.frame = 0
-        with patch.object(game, "Background", side_effect=background), \
-             patch.object(game, "Player", return_value=active), \
+        scene = Mock()
+        events = iter([[SimpleNamespace(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_e)],
+                       [SimpleNamespace(type=pico2d.SDL_QUIT)]])
+        with patch.object(game, "Background", return_value=scene) as factory, \
+             patch.object(game, "Player", return_value=self.player), \
              patch.object(game, "configure_fullscreen"), \
              patch.object(game, "clear_canvas"), \
-             patch.object(active, "draw"), \
+             patch.object(self.player, "draw"), \
              patch.multiple(pico2d, open_canvas=lambda *a: None, close_canvas=lambda: None,
-                            get_events=events, update_canvas=lambda: None, delay=lambda t: None):
+                            get_events=lambda: next(events), update_canvas=lambda: None,
+                            delay=lambda t: None):
             game.main()
-        self.assertEqual(scenes, [0, 1, 0])
+        self.assertEqual(factory.call_count, 1)
+        scene.update.assert_called_once()
 
     def test_connected_soil_uses_plain_tile_and_exposed_walls_keep_edges(self):
         level = Level()
@@ -257,20 +243,20 @@ class PlatformerTests(unittest.TestCase):
         self.assertEqual(tiles[3, 1], 13)
 
     def test_water_is_enterable_has_a_floor_and_allows_jumping_out(self):
-        for index in (0, 1):
-            level = Level(index)
+        for index in (0,):
+            level = Level()
             for pool in level.water:
                 self.player.enter_level(level)
                 self.player.x = (pool.left + pool.right) / 2
-                self.player.y = pool.top + 40
+                self.player.y = pool.top + Player.DRAW_SIZE / 2
                 self.player.grounded = False
                 self.player.update(0.8)
-                self.assertEqual(self.player.y, pool.bottom + 40)
+                self.assertEqual(self.player.y, pool.bottom + Player.DRAW_SIZE / 2)
                 self.assertTrue(self.player.grounded)
                 self.assertTrue(self.player.in_water)
                 self.key(pico2d.SDLK_SPACE)
                 self.player.update(0.17)
-                self.assertGreater(self.player.y - 40, pool.top)
+                self.assertGreater(self.player.y - Player.DRAW_SIZE / 2, pool.top)
                 self.assertFalse(self.player.in_water)
 
 

@@ -6,7 +6,7 @@ from .settings import GROUND_HEIGHT, IMAGE_ROOT, SCREEN_HEIGHT, WORLD_WIDTH
 
 class Player:
     SIZE = 64
-    DRAW_SIZE = 80
+    DRAW_SIZE = 72
     SPEED = 240.0
     GRAVITY = 1500.0
     JUMP_SPEED = 560.0
