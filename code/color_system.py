@@ -44,7 +44,9 @@ class ColorSystem:
         player.has_blue, pool.has_blue = pool.has_blue, player.has_blue
         pool.animation_time = 0.0
         if pool.solid:
-            player.resolve_solid_water(pool)
+            for part in level.water:
+                if part.color_owner is pool.color_owner:
+                    player.resolve_solid_water(part)
         self.transfer_serial += 1
         self.last_transfer = ('blue', 'reclaim' if player.has_blue else 'give')
         return True

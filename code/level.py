@@ -27,6 +27,38 @@ class Water:
     def solid(self):
         return not self.has_blue
 
+    @property
+    def color_owner(self):
+        return self
+
+
+class ConnectedWater(Water):
+    """Another shape of the same water body, sharing one color and clock."""
+    def __init__(self, left, bottom, right, top, source):
+        self.left, self.bottom, self.right, self.top = left, bottom, right, top
+        self.source = source
+        self.is_waterfall = False
+
+    @property
+    def color_owner(self):
+        return self.source.color_owner
+
+    @property
+    def has_blue(self):
+        return self.source.has_blue
+
+    @has_blue.setter
+    def has_blue(self, value):
+        self.source.has_blue = value
+
+    @property
+    def animation_time(self):
+        return self.source.animation_time
+
+    @animation_time.setter
+    def animation_time(self, value):
+        self.source.animation_time = value
+
 
 class Level:
     def __init__(self):

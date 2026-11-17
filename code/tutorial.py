@@ -20,6 +20,7 @@ class Tutorial:
         self.keyboard = pico2d.load_image(str(ui / 'kb_light_all.png'))
         self.mouse = pico2d.load_image(str(ui / 'mouse.png'))
         self.cursor = pico2d.load_image(str(ui / 'cursors.png'))
+        self.panel_bg = pico2d.load_image(str(IMAGE_ROOT / 'ui/tutorial_panel.png'))
         font = ROOT / 'fonts/Galmuri-v2.40.4/Galmuri11.ttf'
         self.font = pico2d.load_font(str(font), 22)
         self.small = pico2d.load_font(str(font), 16)
@@ -34,7 +35,6 @@ class Tutorial:
         self.seen_transfers = set()
         self.transfer_serial = 0
         self.message = None
-        self.message_time = 0.0
         self.complete = False
         self.paused = False
 
@@ -71,6 +71,9 @@ class Tutorial:
                 return
             if not fresh:
                 return
+            if event.key == pico2d.SDLK_RETURN and self.message:
+                self.message = None
+                return
             if self.lesson == 'move' and event.key in self.counts:
                 self.counts[event.key] += 1
                 self.moved = all(count >= 2 for count in self.counts.values())
@@ -78,8 +81,6 @@ class Tutorial:
                 self.jumped = True
             elif self.lesson == 'fall' and event.key == pico2d.SDLK_s and not player.grounded:
                 self.fell = True
-            elif event.key in (pico2d.SDLK_RETURN, pico2d.SDLK_SPACE) and self.message:
-                self.message = None
 
     def update(self, dt, level, player, colors):
         if self.paused:
@@ -95,20 +96,12 @@ class Tutorial:
                                     '다음 물에 색을 옮기려면 가까이에서 좌클릭하세요.')
                 else:
                     self.message = ABILITY_TEXT[color]
-                self.message_time = 12.0
-        if self.message:
-            self.message_time -= dt
-            if self.message_time <= 0:
-                self.message = None
         if level.at_end(player) and not self.complete:
             self.complete = True
-            self.message = ('사원 탐색 완료', '이동과 색 옮기기를 연습했어요!',
-                            'R : 처음부터 다시 연습     ESC : 일시정지')
-            self.message_time = 9999
 
-    @staticmethod
-    def panel(left, bottom, right, top):
-        pico2d.draw_rectangle(left, bottom, right, top, 26, 25, 39, filled=True)
+    def panel(self, left, bottom, right, top):
+        self.panel_bg.draw((left + right) / 2, (bottom + top) / 2,
+                           right - left, top - bottom)
         pico2d.draw_rectangle(left, bottom, right, top, 142, 132, 167)
 
     def key_icon(self, col, row, x, y, width=40, cells=1):
@@ -118,38 +111,15 @@ class Tutorial:
                                 cells * 16, 16, x, y - down * 3, width, 40)
 
     def draw(self, level, player, colors, camera_x):
-        zone = next(label for start, label in reversed(level.zones) if player.x >= start)
-        self.panel(20, SCREEN_HEIGHT - 64, 440, SCREEN_HEIGHT - 18)
-        self.font.draw(36, SCREEN_HEIGHT - 40, '무너진 사원  /  ' + zone, (229, 222, 242))
-        self.small.draw(24, 22, 'A/D 이동   SPACE 점프   S 급강하   좌클릭 색 옮기기   R 재시작   ESC 일시정지',
-                        (219, 211, 229))
         x = max(210, min(SCREEN_WIDTH - 210, player.x - camera_x))
         y = min(SCREEN_HEIGHT - 140, player.top + 86 + math.sin(self.time * 4) * 4)
-        if self.lesson == 'move':
-            self.panel(x - 194, y - 45, x + 194, y + 42)
+        if self.lesson == 'move' and not self.message:
             self.key_icon(0, 0, x - 32, y + 12)
             self.key_icon(0, 3, x + 32, y + 12)
-            self.small.draw(x - 178, y - 24,
-                            f'A와 D를 각각 두 번 눌러 이동해요 ({min(self.counts[pico2d.SDLK_a], 2)}/2 · {min(self.counts[pico2d.SDLK_d], 2)}/2)',
-                            (245, 238, 250))
-        elif self.lesson == 'jump':
-            self.panel(x - 145, y - 45, x + 145, y + 42)
+        elif self.lesson == 'jump' and not self.message:
             self.key_icon(8, 8, x, y + 12, 96, 2)
-            self.small.draw(x - 115, y - 24, 'SPACE를 눌러 점프해 보세요', (245, 238, 250))
-        elif self.lesson == 'fall':
-            self.panel(x - 164, y - 45, x + 164, y + 42)
+        elif self.lesson == 'fall' and not self.message:
             self.key_icon(0, 18, x, y + 12)
-            self.small.draw(x - 146, y - 24, '점프한 뒤 S를 눌러 빨리 내려와요', (245, 238, 250))
-        elif player.x < 1728 and not self.message:
-            self.panel(310, 80, 842, 130)
-            text = '가까운 물에 좌클릭 : 파랑 주기 / 회수하기'
-            self.small.draw(330, 105, text, (235, 229, 245))
-        elif 1728 <= player.x < 3680 and not self.message:
-            lines = ABILITY_TEXT['green' if player.x < 3072 else 'yellow']
-            self.panel(210, 74, 942, 164)
-            self.font.draw(230, 138, lines[0], (222, 211, 244))
-            self.small.draw(230, 106, lines[1], (237, 232, 244))
-            self.small.draw(230, 84, '장치 배치 전 구간 · 지금은 사원 지형을 따라 이동하세요.', (182, 176, 194))
         if self.mouse_pos:
             mx, my = self.mouse_pos
             valid = (0 <= mx < SCREEN_WIDTH and 0 <= my < SCREEN_HEIGHT
@@ -160,14 +130,13 @@ class Tutorial:
                 self.mouse.clip_draw(0, self.mouse.h - 16, 16, 16, mx + 30, my + 24, 40, 40)
                 self.cursor.opacify(pulse)
                 self.cursor.clip_draw(0, self.cursor.h - 16, 16, 16, mx + 5, my - 7, 32, 32)
-                self.small.draw(min(mx + 50, SCREEN_WIDTH - 160), max(42, my + 24),
-                                '색 회수' if valid.has_blue else '색 부여', (241, 234, 255))
         if self.message:
-            self.panel(184, 68, 968, 208)
-            self.font.draw(208, 179, self.message[0], (241, 221, 163))
+            self.panel(184, 214, 968, 434)
+            self.font.draw(216, 394, self.message[0], (241, 221, 163))
             for index, line in enumerate(self.message[1:]):
-                self.small.draw(208, 145 - index * 26, line, (242, 235, 247))
-            self.small.draw(208, 88, 'ENTER로 닫기', (174, 167, 191))
+                self.small.draw(216, 346 - index * 30, line, (242, 235, 247))
+            if int(self.time * 2) % 2 == 0:
+                self.small.draw(834, 242, '[ ENTER ]', (241, 221, 163))
         if self.paused:
             self.panel(330, 228, 822, 420)
             self.font.draw(480, 370, '일시정지', (242, 232, 255))

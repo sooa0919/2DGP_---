@@ -72,6 +72,50 @@ class TutorialTests(unittest.TestCase):
         self.assertEqual(p.y, old_y)
         self.assertEqual(p.left, fall.right)
 
+    def test_waterfall_basin_shares_color_clock_and_has_a_recessed_floor(self):
+        fall, _, basin = self.level.water
+        self.assertIs(basin.color_owner, fall)
+        self.assertEqual(basin.top, fall.bottom)
+        self.assertTrue(any(p.left <= basin.left and p.right >= basin.right
+                            and p.top == basin.bottom for p in self.level.platforms))
+        self.player.x = 650
+        self.assertTrue(self.colors.interact_at(basin.left, basin.top - 4,
+                                                self.level, self.player))
+        self.assertTrue(fall.has_blue)
+        self.water.update(.1, self.level.water)
+        self.assertAlmostEqual(fall.animation_time, .1)
+        self.assertEqual(basin.animation_time, fall.animation_time)
+        self.level.reset_water()
+        self.assertFalse(basin.has_blue)
+        self.assertFalse(fall.has_blue)
+
+    def test_color_dialog_waits_for_enter_and_has_a_blinking_corner_prompt(self):
+        self.ui.message = ABILITY_TEXT['blue']
+        self.ui.update(60, self.level, self.player, self.colors)
+        self.assertIsNotNone(self.ui.message)
+        self.key(pico2d.SDLK_SPACE)
+        self.assertIsNotNone(self.ui.message)
+        with patch('pico2d.draw_rectangle'):
+            self.ui.time = 0
+            self.ui.draw(self.level, self.player, self.colors, 0)
+            self.ui.small.draw.assert_any_call(834, 242, '[ ENTER ]', (241, 221, 163))
+            self.ui.small.draw.reset_mock()
+            self.ui.time = .6
+            self.ui.draw(self.level, self.player, self.colors, 0)
+            self.assertFalse(any(c.args[2] == '[ ENTER ]' for c in self.ui.small.draw.call_args_list))
+        self.key(pico2d.SDLK_RETURN)
+        self.assertIsNone(self.ui.message)
+
+    def test_key_icons_and_normal_play_have_no_explanatory_text(self):
+        with patch('pico2d.draw_rectangle'):
+            self.ui.draw(self.level, self.player, self.colors, 0)
+            self.ui.font.draw.assert_not_called()
+            self.ui.small.draw.assert_not_called()
+            self.ui.keyboard.clip_draw.assert_called()
+            self.ui.moved = self.ui.jumped = self.ui.fell = True
+            self.ui.draw(self.level, self.player, self.colors, 0)
+            self.ui.small.draw.assert_not_called()
+
     def test_falls_animate_only_with_blue_and_clip_inside_sheet(self):
         fall = self.level.water[0]
         self.water.update(.2, [fall])
