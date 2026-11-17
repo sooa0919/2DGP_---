@@ -9,6 +9,7 @@ import pico2d
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from code.background import Background
 from code.level import Level
+from code.color_system import ColorSystem
 from code.player import Player
 
 canvas = None
@@ -47,55 +48,67 @@ def main():
     output = Path(__file__).resolve().parent.parent / "previews"
     output.mkdir(exist_ok=True)
     with patch("pico2d.load_image", side_effect=Sprite):
-        for index in (0,):
-            level = Level()
-            background = Background(level)
-            player = Player(level)
+        level = Level()
+        background = Background(level)
+        player = Player(level)
+        colors = ColorSystem()
+
+        def render(camera):
+            global canvas
+            canvas = Image.new("RGB", (1152, 648))
+            background.draw(camera)
+            player.draw(camera)
+            background.draw_overlay(camera, player)
+            return canvas.copy()
+
+        for label, camera in (("start", 0), ("middle", 900), ("water", 3400),
+                              ("end", level.width - 1152), ("run_right", 0), ("run_left", 0)):
             player.enter_level(level)
-            for label, camera in (("start", 0), ("middle", 900), ("water", 3400),
-                                  ("waterfall", 1900), ("end", level.width - 1152),
-                                  ("run_right", 0), ("run_left", 0)):
-                canvas = Image.new("RGB", (1152, 648))
-                player.enter_level(level)
-                if label == "end":
-                    player.x, player.y = level.end_x, 96 + player.DRAW_SIZE / 2
-                elif label == "water":
-                    pool = level.water[2]
-                    player.x = (pool.left + pool.right) / 2
-                    player.y = pool.bottom + player.DRAW_SIZE / 2
-                elif label == "waterfall":
-                    pool = level.water[1]
-                    player.x, player.y = pool.left + 160, pool.bottom + player.DRAW_SIZE / 2
-                elif label.startswith("run_"):
-                    player.enter_level(level)
-                    if label == "run_left":
-                        player.x = 420
-                    player.keys.add(pico2d.SDLK_d if label == "run_right" else pico2d.SDLK_a)
-                    for _ in range(24):
-                        player.update(1 / 60)
-                background.draw(camera)
-                player.draw(camera)
-                background.draw_overlay(camera, player)
-                canvas.save(output / f"map{index + 1}_{label}.png")
-            # A moving preview uses the same draw calls and frame clock as the game.
-            frames = []
-            for step in range(20):
-                canvas = Image.new("RGB", (1152, 648))
-                background.water.time = step / 10
-                background.draw(1900)
-                background.draw_overlay(1900, player)
-                frames.append(canvas.copy())
-            frames[0].save(output / "forest_waterfall.gif", save_all=True,
-                           append_images=frames[1:], duration=100, loop=0)
-            overview = Image.new("RGB", (level.width, 648))
-            for left in range(0, level.width, 1152):
-                camera = min(left, level.width - 1152)
-                canvas = Image.new("RGB", (1152, 648))
-                background.draw(camera)
-                background.draw_overlay(camera, player)
-                width = min(1152, level.width - left)
-                overview.paste(canvas.crop((left - camera, 0, left - camera + width, 648)), (left, 0))
-            overview.resize((2560, 324), Image.Resampling.NEAREST).save(output / "forest_overview.png")
+            if label == "end":
+                player.x, player.y = level.end_x, 96 + player.DRAW_SIZE / 2
+            elif label == "water":
+                pool = level.water[2]
+                player.x = (pool.left + pool.right) / 2
+                player.y = pool.top + player.DRAW_SIZE / 2
+            elif label.startswith("run_"):
+                if label == "run_left":
+                    player.x = 300
+                player.keys.add(pico2d.SDLK_d if label == "run_right" else pico2d.SDLK_a)
+                for _ in range(24):
+                    player.update(1 / 60)
+            render(camera).save(output / f"map1_{label}.png")
+
+        player.enter_level(level)
+        pool = level.water[1]
+        player.x, player.y = pool.left + 160, pool.top + player.DRAW_SIZE / 2
+        render(1900).save(output / "blue_01_solid.png")
+        colors.interact_at(player.x, pool.top - 8, level, player)
+        player.update(0.4)
+        background.update(0.2)
+        render(1900).save(output / "blue_02_liquid.png")
+        colors.interact_at(player.x, pool.top - 8, level, player)
+        render(1900).save(output / "blue_03_reclaimed.png")
+
+        player.enter_level(level)
+        player.x, player.y = pool.left + 160, pool.top + player.DRAW_SIZE / 2
+        frames = []
+        for step in range(30):
+            if step in (5, 22):
+                colors.interact_at(player.x, pool.top - 8, level, player)
+            player.update(0.1)
+            background.update(0.1)
+            frames.append(render(1900))
+        frames[0].save(output / "blue_transfer.gif", save_all=True,
+                       append_images=frames[1:], duration=100, loop=0)
+
+        player.enter_level(level)
+        overview = Image.new("RGB", (level.width, 648))
+        for left in range(0, level.width, 1152):
+            camera = min(left, level.width - 1152)
+            shot = render(camera)
+            width = min(1152, level.width - left)
+            overview.paste(shot.crop((left - camera, 0, left - camera + width, 648)), (left, 0))
+        overview.resize((2560, 324), Image.Resampling.NEAREST).save(output / "forest_overview.png")
 
 
 if __name__ == "__main__":
