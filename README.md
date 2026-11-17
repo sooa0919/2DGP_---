@@ -31,7 +31,7 @@ Python과 pico2d가 설치된 환경에서 프로젝트 루트의 `python main.p
 | 상태 | 캐릭터 | 클릭한 물 |
 | --- | --- | --- |
 | 시작 / 색 회수 후 | 파란색 원본 이미지 | 흑백, 애니메이션 없음, 밟을 수 있는 고체 |
-| 색 전달 후 | 기존 `idle_gray.png` / `run_gray.png` | 원본 컬러, 움직이는 액체, 들어갈 수 있음 |
+| 색 전달 후 | 기존 `idle_gray.png` / Pillow로 생성한 흑백 run | 원본 컬러, 움직이는 액체, 들어갈 수 있음 |
 
 색을 주면 해당 물의 고체 충돌이 즉시 사라지고 캐릭터는 색을 잃습니다.
 같은 물을 다시 좌클릭하면 색을 회수하며 물은 다시 굳습니다.
@@ -44,7 +44,10 @@ R 또는 추락 후 복귀 시 모든 물을 흑백 고체로 되돌리고 파�
 액체 안에서는 바닥을 걸을 수 있으며 이동 속도는 70%이고 스페이스바로 나올 수 있습니다.
 
 캐릭터는 72×72 크기로 표시하며 색 보유 여부에 맞춰 blue / gray 이미지를 사용합니다.
-정지 시 idle, 이동과 점프 시 run을 재생합니다.
+정지 시 idle 16프레임, 이동과 점프 시 새 run 10프레임을 재생합니다.
+run은 오른쪽을 바라보는 원본을 기준으로 이동 방향에 맞춰 반전합니다.
+흑백 run은 `run_blue.png`의 투명도를 유지해 Pillow로 생성한
+`image/background/grayscale/character/run.png`를 사용합니다.
 
 - 흑백 자산 생성: `python tools/make_grayscale.py` (Pillow 필요)
 - 테스트: `python -m unittest discover -s tests`
