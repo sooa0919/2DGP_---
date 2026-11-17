@@ -13,10 +13,11 @@ class Player:
     ANIMATION_FPS = {"idle": 8.0, "run": 10.0}
     MOVEMENT_KEYS = (pico2d.SDLK_w, pico2d.SDLK_a, pico2d.SDLK_s, pico2d.SDLK_d)
 
-    def __init__(self):
+    def __init__(self, level=None):
+        self.level = level
         self.images = {
             state: pico2d.load_image(
-                str(IMAGE_ROOT / "character" / state / f"{state}_blue.png")
+                str(IMAGE_ROOT / "background" / "grayscale" / "character" / f"{state}.png")
             )
             for state in ("idle", "run")
         }
@@ -44,6 +45,14 @@ class Player:
     def update(self, dt):
         dx = int(pico2d.SDLK_d in self.keys) - int(pico2d.SDLK_a in self.keys)
         old_x = self.x
+        if self.level is not None:
+            remaining = dt
+            while remaining > 1e-9:
+                step = min(remaining, 1 / 120)
+                self._move_on_platforms(step, dx)
+                remaining -= step
+            self._animate(dt, dx, old_x)
+            return
         self.x += dx * self.SPEED * dt
         if not self.grounded:
             gravity = (self.FAST_FALL_GRAVITY if pico2d.SDLK_s in self.keys
@@ -59,6 +68,54 @@ class Player:
         elif self.y > SCREEN_HEIGHT - half:
             self.y = SCREEN_HEIGHT - half
             self.velocity_y = min(0.0, self.velocity_y)
+        self._animate(dt, dx, old_x)
+
+    def enter_level(self, level):
+        self.level = level
+        self.x, floor = level.spawn
+        self.y = floor + self.DRAW_SIZE / 2
+        self.velocity_y = 0.0
+        self.grounded = True
+        self.state, self.frame = "idle", 0.0
+        self.keys.clear()
+
+    def _move_on_platforms(self, dt, dx):
+        half = self.DRAW_SIZE / 2
+        solids = self.level.platforms
+        old_x = self.x
+        self.x = max(half, min(self.x + dx * self.SPEED * dt, self.level.width - half))
+        for p in solids:
+            if self.y + half <= p.bottom + 0.01 or self.y - half >= p.top - 0.01:
+                continue
+            if self.x + half > p.left and self.x - half < p.right:
+                if dx > 0 and old_x + half <= p.left + 0.01:
+                    self.x = min(self.x, p.left - half)
+                elif dx < 0 and old_x - half >= p.right - 0.01:
+                    self.x = max(self.x, p.right + half)
+        old_bottom, old_top = self.y - half, self.y + half
+        gravity = self.FAST_FALL_GRAVITY if pico2d.SDLK_s in self.keys else self.GRAVITY
+        self.y += self.velocity_y * dt - gravity * dt * dt / 2
+        self.velocity_y -= gravity * dt
+        self.grounded = False
+        for p in solids:
+            if self.x + half <= p.left or self.x - half >= p.right:
+                continue
+            if self.velocity_y <= 0 and old_bottom >= p.top - 0.01 and self.y - half <= p.top:
+                self.y = p.top + half
+                self.velocity_y = 0.0
+                self.grounded = True
+            elif self.velocity_y > 0 and old_top <= p.bottom + 0.01 and self.y + half >= p.bottom:
+                self.y = p.bottom - half
+                self.velocity_y = 0.0
+        if self.y > SCREEN_HEIGHT - half:
+            self.y = SCREEN_HEIGHT - half
+            self.velocity_y = min(0.0, self.velocity_y)
+        if self.y + half < -96:
+            held_keys = self.keys.copy()
+            self.enter_level(self.level)
+            self.keys = held_keys
+
+    def _animate(self, dt, dx, old_x):
         if dx:
             self.facing = 1 if dx > 0 else -1
         state = "run" if self.x != old_x or not self.grounded else "idle"

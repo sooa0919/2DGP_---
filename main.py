@@ -8,16 +8,20 @@ from code.background import Background
 from code.camera import Camera
 from code.display import clear_canvas, configure_fullscreen
 from code.player import Player
-from code.settings import SCREEN_HEIGHT, SCREEN_WIDTH, WORLD_WIDTH
+from code.level import Level
+from code.settings import SCREEN_HEIGHT, SCREEN_WIDTH
 
 
 def main():
     pico2d.open_canvas(SCREEN_WIDTH, SCREEN_HEIGHT)
     try:
         configure_fullscreen()
-        background = Background()
-        player = Player()
-        camera = Camera(SCREEN_WIDTH, WORLD_WIDTH)
+        level = Level()
+        background = Background(level)
+        player = Player(level)
+        player.enter_level(level)
+        camera = Camera(SCREEN_WIDTH, level.width)
+        interaction_down = False
         previous = perf_counter()
         running = True
         while running:
@@ -31,6 +35,17 @@ def main():
                 ):
                     running = False
                 else:
+                    if event.type == pico2d.SDL_KEYUP and event.key == pico2d.SDLK_e:
+                        interaction_down = False
+                    if event.type == pico2d.SDL_WINDOWEVENT and event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
+                        interaction_down = False
+                    if event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_e:
+                        if not interaction_down and level.can_exit(player):
+                            level = Level(level.index + 1)
+                            background = Background(level)
+                            player.enter_level(level)
+                            camera = Camera(SCREEN_WIDTH, level.width)
+                        interaction_down = True
                     player.handle_event(event)
             if not running:
                 break
@@ -39,6 +54,7 @@ def main():
             clear_canvas()
             background.draw(camera.x)
             player.draw(camera.x)
+            background.draw_overlay(camera.x, player)
             pico2d.update_canvas()
             pico2d.delay(0.001)
     finally:

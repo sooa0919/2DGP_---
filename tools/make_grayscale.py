@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageDraw, ImageOps
 
 
 BACKGROUND_ROOT = Path(__file__).resolve().parent.parent / "image" / "background"
@@ -16,6 +16,16 @@ def main():
         for i in range(1, 6)
     ]
     sources.append((BACKGROUND_ROOT / "tile" / "Tileset.png", OUTPUT_ROOT / "Tileset.png"))
+    root = BACKGROUND_ROOT.parent
+    sources.extend((p, OUTPUT_ROOT / "tiles" / p.name)
+                   for p in (BACKGROUND_ROOT / "tile").glob("Tile_*.png"))
+    sources.extend((p, OUTPUT_ROOT / "temple" / p.name)
+                   for p in (BACKGROUND_ROOT / "background_layer" / "backgroun1_temple").glob("*.png"))
+    sources.extend((p, OUTPUT_ROOT / "objects" / p.relative_to(root / "object" / "Objects"))
+                   for p in (root / "object" / "Objects").glob("*/*.png"))
+    sources.extend((root / "character" / state / f"{state}_blue.png",
+                    OUTPUT_ROOT / "character" / f"{state}.png")
+                   for state in ("idle", "run"))
     for source, destination in sources:
         with Image.open(source) as original:
             rgba = original.convert("RGBA")
@@ -24,6 +34,13 @@ def main():
             destination.parent.mkdir(parents=True, exist_ok=True)
             grayscale.save(destination)
         print(f"Generated: {destination.relative_to(BACKGROUND_ROOT)}")
+    for name, text in (("press_e", "PRESS E  >  NEXT MAP"),
+                       ("grove", "01 / SILENT GROVE"),
+                       ("temple", "02 / FORGOTTEN TEMPLE"),
+                       ("controls", "A D MOVE   W JUMP   S FALL   E ENTER")):
+        label = Image.new("RGBA", (len(text) * 7 + 16, 26), (12, 12, 12, 225))
+        ImageDraw.Draw(label).text((8, 6), text, fill="white")
+        label.resize((label.width * 2, label.height * 2), Image.Resampling.NEAREST).save(OUTPUT_ROOT / f"{name}.png")
 
 
 if __name__ == "__main__":

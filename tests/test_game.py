@@ -6,6 +6,7 @@ import pico2d
 
 from code.camera import Camera
 from code.player import Player
+from code.level import Level, Platform
 from code.settings import GROUND_HEIGHT, SCREEN_WIDTH, WORLD_WIDTH
 
 
@@ -93,6 +94,102 @@ class PlatformerTests(unittest.TestCase):
                                  (WORLD_WIDTH - 32, WORLD_WIDTH - SCREEN_WIDTH)):
             camera.follow(target)
             self.assertEqual(camera.x, expected)
+
+    def test_both_routes_are_traversable_with_actual_jump_physics(self):
+        for index in (0, 1):
+            level = Level(index)
+            self.player.enter_level(level)
+            self.key(pico2d.SDLK_d)
+            for _ in range(2400):
+                p = self.player
+                foot = p.y - p.DRAW_SIZE / 2
+                if p.grounded:
+                    ahead = any(s.left > p.x and s.left - (p.x + 44) < 40
+                                and s.top > foot + 1 and s.bottom < p.y + 44
+                                for s in level.platforms)
+                    support = next((s for s in level.platforms
+                                    if abs(s.top - foot) < 1 and s.left <= p.x < s.right), None)
+                    gap = (support is not None and support.right - p.x < 36
+                           and not any(s.left == support.right and s.bottom == 0
+                                       for s in level.platforms))
+                    if ahead or gap:
+                        self.key(pico2d.SDLK_w)
+                self.player.update(1 / 60)
+                self.key(pico2d.SDLK_w, False)
+                if level.can_exit(self.player):
+                    break
+            self.assertTrue(level.can_exit(self.player),
+                            (index, self.player.x, self.player.y))
+
+    def test_wall_ceiling_walk_off_and_respawn(self):
+        level = Level()
+        level.platforms = [Platform(0, 0, 320, 96), Platform(320, 0, 480, 160)]
+        self.player.enter_level(level)
+        self.key(pico2d.SDLK_d)
+        self.player.update(1)
+        self.assertEqual(self.player.x, 276)
+        self.key(pico2d.SDLK_w)
+        self.player.update(0.7)
+        self.assertTrue(self.player.grounded)
+        self.assertEqual(self.player.y, 204)
+        self.player.update(0.6)
+        self.assertFalse(self.player.grounded)
+        self.key(pico2d.SDLK_d, False)
+        self.player.update(2)
+        self.assertEqual(self.player.x, level.spawn[0])
+        self.assertTrue(self.player.grounded)
+        level.platforms.append(Platform(128, 208, 288, 240))
+        self.key(pico2d.SDLK_w, False)
+        self.key(pico2d.SDLK_w)
+        self.player.update(0.1)
+        self.assertLessEqual(self.player.y + 44, 208)
+        self.assertLessEqual(self.player.velocity_y, 0)
+
+    def test_exit_requires_nearby_grounded_player_and_level_resets_motion(self):
+        level = Level()
+        self.player.enter_level(level)
+        self.assertFalse(level.can_exit(self.player))
+        self.player.x = level.exit_x
+        self.assertTrue(level.can_exit(self.player))
+        self.player.grounded = False
+        self.assertFalse(level.can_exit(self.player))
+        self.key(pico2d.SDLK_d)
+        self.player.velocity_y = -500
+        self.player.enter_level(Level(1))
+        self.assertFalse(self.player.keys)
+        self.assertEqual(self.player.velocity_y, 0)
+        self.assertTrue(self.player.grounded)
+
+    def test_main_switches_maps_only_on_fresh_e_at_exit(self):
+        import main as game
+        active = self.player
+        scenes = []
+
+        def background(level):
+            scenes.append(level.index)
+            return SimpleNamespace(draw=lambda x: None, draw_overlay=lambda x, p: None)
+
+        def events():
+            frame = events.frame
+            events.frame += 1
+            if frame in (2, 3, 5):
+                active.x = active.level.exit_x
+                active.y = active.level.exit_y + 44
+            if frame == 6:
+                return [SimpleNamespace(type=pico2d.SDL_QUIT)]
+            return [SimpleNamespace(type=pico2d.SDL_KEYUP if frame in (1, 4) else pico2d.SDL_KEYDOWN,
+                                    key=pico2d.SDLK_e)]
+
+        events.frame = 0
+        with patch.object(game, "Background", side_effect=background), \
+             patch.object(game, "Player", return_value=active), \
+             patch.object(game, "configure_fullscreen"), \
+             patch.object(game, "clear_canvas"), \
+             patch.object(active, "draw"), \
+             patch.multiple(pico2d, open_canvas=lambda *a: None, close_canvas=lambda: None,
+                            get_events=events, update_canvas=lambda: None, delay=lambda t: None):
+            game.main()
+        self.assertEqual(scenes, [0, 1, 0])
 
 
 if __name__ == "__main__":

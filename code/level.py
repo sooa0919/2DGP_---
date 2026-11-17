@@ -1,0 +1,52 @@
+"""Map geometry shared by drawing, collisions and exits (world coordinates)."""
+from dataclasses import dataclass
+
+from .settings import TILE_SIZE
+
+
+@dataclass(frozen=True)
+class Platform:
+    left: int
+    bottom: int
+    right: int
+    top: int
+
+
+class Level:
+    def __init__(self, index=0):
+        self.index = index % 2
+        self.name = ("SILENT GROVE", "FORGOTTEN TEMPLE")[self.index]
+        # Column ranges, surface height in tiles. Missing columns are jump gaps.
+        routes = (
+            [(0, 16, 3), (16, 23, 5), (23, 30, 7), (30, 38, 5),
+             (41, 50, 4), (50, 57, 6), (57, 64, 8), (64, 72, 6),
+             (75, 84, 4), (84, 91, 6), (91, 99, 5), (99, 120, 3)],
+            [(0, 14, 3), (14, 21, 5), (21, 28, 7), (28, 36, 9),
+             (39, 47, 8), (47, 54, 6), (54, 62, 4), (65, 73, 4),
+             (73, 80, 6), (80, 87, 8), (87, 95, 6), (95, 120, 3)],
+        )
+        self.platforms = [Platform(a * 32, 0, b * 32, h * 32)
+                          for a, b, h in routes[self.index]]
+        # Optional higher ledges provide a second route over parts of the path.
+        ledges = ([(8, 12, 6), (88, 92, 9)], [(8, 12, 6), (99, 104, 6)])
+        self.platforms += [Platform(a * 32, (h - 1) * 32, b * 32, h * 32)
+                           for a, b, h in ledges[self.index]]
+        self.width = 120 * TILE_SIZE
+        self.spawn = (200.0, 96.0)
+        self.exit_x = self.width - 160
+        self.exit_y = 96
+        # Decorations are anchored to the actual surface, away from jump lips.
+        self.objects = []
+        kinds = ("Willows/1", "Bushes/7", "Stones/4", "Trees/2",
+                 "Grass/3", "Ridges/1", "Bushes/3", "Stones/3")
+        for i, platform in enumerate(self.platforms[:12]):
+            self.objects.append((kinds[(i + self.index * 3) % len(kinds)],
+                                 platform.left + 80, platform.top, 2.0))
+            if platform.right - platform.left > 240:
+                self.objects.append(("Grass/2", platform.right - 96, platform.top, 2.0))
+        self.objects += [("Pointers/1", self.exit_x - 120, 96, 3.0),
+                         ("Stones/2", self.exit_x, 96, 3.0)]
+
+    def can_exit(self, player):
+        return (player.grounded and abs(player.x - self.exit_x) <= 80
+                and abs(player.y - player.DRAW_SIZE / 2 - self.exit_y) < 3)
