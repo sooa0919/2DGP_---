@@ -22,8 +22,8 @@ class Player:
             for state in ("idle", "run")
         }
         self.gray_images = {
-            state: pico2d.load_image(str(IMAGE_ROOT / "character" / state / f"{state}_gray.png"))
-            for state in ("idle", "run")
+            "idle": pico2d.load_image(str(IMAGE_ROOT / "character" / "idle" / "idle_gray.png")),
+            "run": pico2d.load_image(str(IMAGE_ROOT / "background" / "grayscale" / "character" / "run.png")),
         }
         self.has_blue = True
         self.x = 200.0
@@ -145,10 +145,11 @@ class Player:
         image = self.current_images[self.state]
         columns = image.w // self.SIZE
         row, column = divmod(int(self.frame), columns)
-        # The source sprites face left, so flip them when facing right.
+        # Updated run sprites face right; idle sprites face left.
+        flip = (self.facing < 0) if self.state == "run" else (self.facing > 0)
         image.clip_composite_draw(
             column * self.SIZE, image.h - (row + 1) * self.SIZE,
-            self.SIZE, self.SIZE, 0, "h" if self.facing > 0 else "",
+            self.SIZE, self.SIZE, 0, "h" if flip else "",
             round(self.x - camera_x), round(self.y), self.DRAW_SIZE, self.DRAW_SIZE,
         )
 
