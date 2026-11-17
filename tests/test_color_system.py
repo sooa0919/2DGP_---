@@ -17,7 +17,7 @@ class BlueColorTests(unittest.TestCase):
         self.level = Level()
         self.player.enter_level(self.level)
         self.colors = ColorSystem()
-        self.pool = self.level.water[1]
+        self.pool = self.level.water[0]
         self.player.x = self.pool.left + 80
         self.player.y = self.pool.top + self.player.DRAW_SIZE / 2
 
@@ -58,7 +58,7 @@ class BlueColorTests(unittest.TestCase):
 
     def test_empty_character_cannot_activate_another_pool(self):
         self.assertTrue(self.click())
-        other = self.level.water[2]
+        other = self.level.water[1]
         self.player.x = other.left + 80
         self.player.y = other.top + Player.DRAW_SIZE / 2
         self.assertFalse(self.click(other))

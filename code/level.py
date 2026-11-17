@@ -37,8 +37,7 @@ class Level:
                  (76, 90, 3), (90, 96, 4), (96, 102, 5), (102, 108, 4),
                  (108, 114, 3), (114, 126, 2), (126, 132, 3),
                  (132, 138, 4), (138, 145, 3), (145, 160, 3)]
-        self.water = [Water(70 * 32, 6 * 32, 76 * 32, 7 * 32),
-                      Water(76 * 32, 2 * 32, 89 * 32, 3 * 32),
+        self.water = [Water(76 * 32, 2 * 32, 89 * 32, 3 * 32),
                       Water(115 * 32, 32, 123 * 32, 2 * 32)]
         self.platforms = []
         for a, b, h in route:
@@ -58,7 +57,8 @@ class Level:
         self.objects = []
         kinds = ("Willows/1", "Trees/1", "Rock/moss", "Trees/2",
                  "Ridges/1", "Willows/2", "Rock/low", "Trees/3")
-        dry = [p for p in self.platforms if p.right - p.left >= 96
+        # Keep the restored upper cliff clear and preserve existing prop groups.
+        dry = [p for p in self.platforms if p.right - p.left >= 96 and p.left != 70 * 32
                and not any(w.left <= p.left and p.right <= w.right for w in self.water)]
         for i, platform in enumerate(dry):
             # Main silhouettes are clustered with shrubs, grass and small rocks.

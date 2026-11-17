@@ -67,7 +67,7 @@ def main():
             if label == "end":
                 player.x, player.y = level.end_x, 96 + player.DRAW_SIZE / 2
             elif label == "water":
-                pool = level.water[2]
+                pool = level.water[1]
                 player.x = (pool.left + pool.right) / 2
                 player.y = pool.top + player.DRAW_SIZE / 2
             elif label.startswith("run_"):
@@ -79,7 +79,7 @@ def main():
             render(camera).save(output / f"map1_{label}.png")
 
         player.enter_level(level)
-        pool = level.water[1]
+        pool = level.water[0]
         player.x, player.y = pool.left + 160, pool.top + player.DRAW_SIZE / 2
         render(1900).save(output / "blue_01_solid.png")
         colors.interact_at(player.x, pool.top - 8, level, player)
