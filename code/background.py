@@ -3,6 +3,7 @@ import math
 import pico2d
 
 from .level import Level
+from .scenery import SWAMP_ATLAS, SWAMP_PROPS
 from .settings import IMAGE_ROOT, SCREEN_HEIGHT, SCREEN_WIDTH, TILE_SIZE
 
 
@@ -23,7 +24,8 @@ class Background:
         for i in (10, 20, 30):
             self.tiles[i].opacify(0.55)
         self.objects = {name: pico2d.load_image(str(scenery / "objects" / f"{name}.png"))
-                        for name, *_ in self.level.objects}
+                        for name, *_ in self.level.objects if name not in SWAMP_PROPS}
+        self.swamp = pico2d.load_image(str(SWAMP_ATLAS)) if self.level.index == 1 else None
         self.prompt = pico2d.load_image(str(scenery / "press_e.png"))
 
     def draw(self, camera_x):
@@ -38,6 +40,13 @@ class Background:
             if first <= col < last:
                 self.tiles[tile].draw(col * 32 + 16 - round(camera_x), row * 32 + 16, 32, 32)
         for name, x, y, scale in self.level.objects:
+            if name in SWAMP_PROPS:
+                sx, sy, sw, sh = SWAMP_PROPS[name]
+                w, h = sw * scale, sh * scale
+                if -w < x - camera_x < SCREEN_WIDTH + w:
+                    self.swamp.clip_draw(sx, self.swamp.h - sy - sh, sw, sh,
+                                         round(x - camera_x), y + h / 2, w, h)
+                continue
             obj = self.objects[name]
             w, h = obj.w * scale, obj.h * scale
             if -w < x - camera_x < SCREEN_WIDTH + w:
@@ -49,7 +58,11 @@ class Background:
             for x in range(pool.left, pool.right, 32):
                 if -32 <= x - camera_x <= SCREEN_WIDTH:
                     for y in range(pool.bottom, pool.top, 32):
-                        self.tiles[10 if y == pool.top - 32 else 20].draw(
-                            x + 16 - round(camera_x), y + 16, 32, 32)
+                        if y == pool.top - 32:
+                            self.tiles[10].draw(x + 16 - round(camera_x), y + 16, 32, 32)
+                        else:
+                            # Sample below the foam so submerged rows have no extra surface.
+                            self.tiles[20].clip_draw(0, 0, 32, 22,
+                                                    x + 16 - round(camera_x), y + 16, 32, 32)
         if self.level.can_exit(player):
             self.prompt.draw(round(self.level.exit_x - camera_x), self.level.exit_y + 190)

@@ -26,6 +26,8 @@ def main():
     sources.extend((root / "character" / state / f"{state}_blue.png",
                     OUTPUT_ROOT / "character" / f"{state}.png")
                    for state in ("idle", "run"))
+    gandalf = root / "object" / "GandalfHardcore FREE Platformer Assets" / "GandalfHardcore FREE Platformer Assets"
+    sources.append((gandalf / "Angel Statue.png", OUTPUT_ROOT / "objects" / "Ruins" / "statue.png"))
     for source, destination in sources:
         with Image.open(source) as original:
             rgba = original.convert("RGBA")
@@ -34,6 +36,14 @@ def main():
             destination.parent.mkdir(parents=True, exist_ok=True)
             grayscale.save(destination)
         print(f"Generated: {destination.relative_to(BACKGROUND_ROOT)}")
+    with Image.open(gandalf / "Decor.png") as decor:
+        for name, box in (("low", (32, 176, 96, 192)), ("moss", (0, 272, 96, 320))):
+            rock = decor.convert("RGBA").crop(box)
+            gray = ImageOps.grayscale(rock).convert("RGBA")
+            gray.putalpha(rock.getchannel("A"))
+            folder = OUTPUT_ROOT / "objects" / "Rock"
+            folder.mkdir(parents=True, exist_ok=True)
+            gray.save(folder / f"{name}.png")
     for name, text in (("press_e", "PRESS E  >  NEXT MAP"),
                        ("grove", "01 / SILENT GROVE"),
                        ("temple", "02 / FORGOTTEN TEMPLE"),

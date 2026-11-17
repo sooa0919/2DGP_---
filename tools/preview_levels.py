@@ -37,6 +37,9 @@ class Sprite:
         self.draw(cx, cy, dw, dh)
         self.image = original
 
+    def clip_draw(self, x, y, w, h, cx, cy, dw, dh):
+        self.clip_composite_draw(x, y, w, h, 0, "", cx, cy, dw, dh)
+
 
 def main():
     global canvas
@@ -48,10 +51,14 @@ def main():
             background = Background(level)
             player = Player(level)
             player.enter_level(level)
-            for label, camera in (("start", 0), ("middle", 1100), ("exit", level.width - 1152)):
+            for label, camera in (("start", 0), ("middle", 1100), ("water", 2200), ("exit", level.width - 1152)):
                 canvas = Image.new("RGB", (1152, 648))
                 if label == "exit":
                     player.x, player.y = level.exit_x, level.exit_y + player.DRAW_SIZE / 2
+                elif label == "water":
+                    pool = level.water[1]
+                    player.x = (pool.left + pool.right) / 2
+                    player.y = pool.bottom + player.DRAW_SIZE / 2
                 background.draw(camera)
                 player.draw(camera)
                 background.draw_overlay(camera, player)

@@ -45,7 +45,7 @@ class Level:
             else:
                 self.platforms.append(Platform(a * 32, 0, b * 32, h * 32))
         # Optional higher ledges provide a second route over parts of the path.
-        ledges = ([(8, 14, 6), (88, 94, 9)], [(8, 13, 6), (98, 103, 6)])
+        ledges = ([(8, 14, 6), (88, 94, 9)], [(8, 13, 6), (98, 103, 8)])
         self.platforms += [Platform(a * 32, (h - 2) * 32, b * 32, h * 32)
                            for a, b, h in ledges[self.index]]
         self.width = 120 * TILE_SIZE
@@ -54,15 +54,23 @@ class Level:
         self.exit_y = 96
         # Decorations are anchored to the actual surface, away from jump lips.
         self.objects = []
-        kinds = ("Willows/1", "Bushes/7", "Stones/4", "Trees/2",
-                 "Grass/3", "Ridges/1", "Bushes/3", "Stones/3")
-        for i, platform in enumerate(self.platforms[:12]):
-            self.objects.append((kinds[(i + self.index * 3) % len(kinds)],
-                                 platform.left + 80, platform.top, 2.0))
-            if platform.right - platform.left > 240:
-                self.objects.append(("Grass/2", platform.right - 96, platform.top, 2.0))
-        self.objects += [("Pointers/1", self.exit_x - 120, 96, 3.0),
-                         ("Stones/2", self.exit_x, 96, 3.0)]
+        if self.index == 0:
+            kinds = ("Willows/1", "Rock/low", "Trees/2", "Ridges/1",
+                     "Rock/moss", "Willows/2", "Rock/low", "Trees/3")
+        else:
+            kinds = ("Swamp/pillar", "Swamp/monolith", "Ruins/statue",
+                     "Swamp/broken_pillar", "Swamp/rubble", "Stones/1")
+        # Use the original dry banks, rather than anchoring props inside pools.
+        for i, (a, b, h) in enumerate(routes[self.index]):
+            kind = kinds[i % len(kinds)]
+            scale = 2.0 if self.index == 0 else (1.4 if kind == "Swamp/monolith" else 2.5)
+            self.objects.append((kind, (a + 2) * 32 - 16, h * 32, scale))
+            if i not in (4, 8, 11) and b - a >= 7:
+                self.objects.append(("Bushes/3" if self.index == 0 else "Rock/low",
+                                     (b - 2) * 32, h * 32, 1.5))
+        self.objects += [("Pointers/1", self.exit_x - 120, 96, 2.5)]
+        self.objects.append(("Trees/1" if self.index == 0 else "Swamp/monolith",
+                             self.exit_x + 64, 96, 2.0 if self.index == 0 else 1.4))
 
     def can_exit(self, player):
         return (player.grounded and abs(player.x - self.exit_x) <= 80
