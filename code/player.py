@@ -7,6 +7,7 @@ class Player:
     SIZE = 64
     DRAW_SIZE = 72
     RUN_DRAW_SIZE = 80
+    JUMP_DRAW_SIZE = 84
     # Opaque lower edge of each supplied run frame, in source pixels.
     RUN_FOOT_ROWS = (60, 64, 64, 55, 52, 60, 64, 64, 55, 52)
     JUMP_FOOT_ROWS = (60, 59, 58, 58)
@@ -176,7 +177,8 @@ class Player:
         row, column = divmod(int(self.frame), columns)
         # Run and jump sprites face right; idle sprites face left.
         flip = (self.facing > 0) if self.state == "idle" else (self.facing < 0)
-        draw_size = self.RUN_DRAW_SIZE if self.state == "run" else self.DRAW_SIZE
+        draw_size = (self.RUN_DRAW_SIZE if self.state == "run" else
+                     self.JUMP_DRAW_SIZE if self.state in ("jump", "fall") else self.DRAW_SIZE)
         foot_rows = self.RUN_FOOT_ROWS if self.state == "run" else (
             self.JUMP_FOOT_ROWS if self.state in ("jump", "fall") else (self.SIZE,))
         foot_row = foot_rows[int(self.frame) % len(foot_rows)]
