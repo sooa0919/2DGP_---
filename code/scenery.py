@@ -9,6 +9,6 @@ SWAMP_ATLAS = (IMAGE_ROOT / "background" / "tile" /
 SWAMP_PROPS = {
     "Swamp/pillar": (0, 288, 32, 64),
     "Swamp/broken_pillar": (32, 288, 32, 64),
-    "Swamp/monolith": (96, 256, 176, 96),
+    "Swamp/monolith": (96, 352, 176, 96),
     "Swamp/rubble": (0, 352, 48, 32),
 }
