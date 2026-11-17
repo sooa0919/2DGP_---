@@ -104,8 +104,9 @@ class PlatformerTests(unittest.TestCase):
                 p = self.player
                 foot = p.y - p.DRAW_SIZE / 2
                 if p.grounded:
-                    ahead = any(s.left > p.x and s.left - (p.x + 44) < 40
-                                and s.top > foot + 1 and s.bottom < p.y + 44
+                    half = p.DRAW_SIZE / 2
+                    ahead = any(s.left > p.x and s.left - (p.x + half) < 40
+                                and s.top > foot + 1 and s.bottom < p.y + half
                                 for s in level.platforms)
                     support = next((s for s in level.platforms
                                     if abs(s.top - foot) < 1 and s.left <= p.x < s.right), None)
@@ -127,11 +128,11 @@ class PlatformerTests(unittest.TestCase):
         self.player.enter_level(level)
         self.key(pico2d.SDLK_d)
         self.player.update(1)
-        self.assertEqual(self.player.x, 276)
+        self.assertEqual(self.player.x, 320 - Player.DRAW_SIZE / 2)
         self.key(pico2d.SDLK_w)
         self.player.update(0.7)
         self.assertTrue(self.player.grounded)
-        self.assertEqual(self.player.y, 204)
+        self.assertEqual(self.player.y, 160 + Player.DRAW_SIZE / 2)
         self.player.update(0.6)
         self.assertFalse(self.player.grounded)
         self.key(pico2d.SDLK_d, False)
@@ -142,7 +143,7 @@ class PlatformerTests(unittest.TestCase):
         self.key(pico2d.SDLK_w, False)
         self.key(pico2d.SDLK_w)
         self.player.update(0.1)
-        self.assertLessEqual(self.player.y + 44, 208)
+        self.assertLessEqual(self.player.y + Player.DRAW_SIZE / 2, 208)
         self.assertLessEqual(self.player.velocity_y, 0)
 
     def test_exit_requires_nearby_grounded_player_and_level_resets_motion(self):
@@ -174,7 +175,7 @@ class PlatformerTests(unittest.TestCase):
             events.frame += 1
             if frame in (2, 3, 5):
                 active.x = active.level.exit_x
-                active.y = active.level.exit_y + 44
+                active.y = active.level.exit_y + active.DRAW_SIZE / 2
             if frame == 6:
                 return [SimpleNamespace(type=pico2d.SDL_QUIT)]
             return [SimpleNamespace(type=pico2d.SDL_KEYUP if frame in (1, 4) else pico2d.SDL_KEYDOWN,
@@ -190,6 +191,33 @@ class PlatformerTests(unittest.TestCase):
                             get_events=events, update_canvas=lambda: None, delay=lambda t: None):
             game.main()
         self.assertEqual(scenes, [0, 1, 0])
+
+    def test_connected_soil_uses_plain_tile_and_exposed_walls_keep_edges(self):
+        level = Level()
+        level.platforms = [Platform(0, 0, 64, 96), Platform(64, 0, 128, 160)]
+        tiles = level.terrain_tiles()
+        self.assertEqual(tiles[1, 1], 12)
+        self.assertEqual(tiles[2, 1], 12)
+        self.assertEqual(tiles[2, 3], 11)
+        self.assertEqual(tiles[0, 1], 11)
+        self.assertEqual(tiles[3, 1], 13)
+
+    def test_water_is_enterable_has_a_floor_and_allows_jumping_out(self):
+        for index in (0, 1):
+            level = Level(index)
+            for pool in level.water:
+                self.player.enter_level(level)
+                self.player.x = (pool.left + pool.right) / 2
+                self.player.y = pool.top + 40
+                self.player.grounded = False
+                self.player.update(0.8)
+                self.assertEqual(self.player.y, pool.bottom + 40)
+                self.assertTrue(self.player.grounded)
+                self.assertTrue(self.player.in_water)
+                self.key(pico2d.SDLK_w)
+                self.player.update(0.17)
+                self.assertGreater(self.player.y - 40, pool.top)
+                self.assertFalse(self.player.in_water)
 
 
 if __name__ == "__main__":

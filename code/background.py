@@ -18,12 +18,13 @@ class Background:
         self.layers = [pico2d.load_image(str(p)) for p in paths]
         self.scroll_rates = (0.0, 0.15, 0.3, 0.5, 0.75)
         self.tiles = {i: pico2d.load_image(str(scenery / "tiles" / f"Tile_{i:02}.png"))
-                      for i in (1, 2, 3, 11, 12, 13, 24, 57, 58)}
+                      for i in (1, 2, 3, 10, 11, 12, 13, 20, 30)}
+        self.terrain = self.level.terrain_tiles()
+        for i in (10, 20, 30):
+            self.tiles[i].opacify(0.55)
         self.objects = {name: pico2d.load_image(str(scenery / "objects" / f"{name}.png"))
                         for name, *_ in self.level.objects}
         self.prompt = pico2d.load_image(str(scenery / "press_e.png"))
-        self.title = pico2d.load_image(str(scenery / ("grove.png" if self.level.index == 0 else "temple.png")))
-        self.controls = pico2d.load_image(str(scenery / "controls.png"))
 
     def draw(self, camera_x):
         for layer, rate in zip(self.layers, self.scroll_rates):
@@ -31,19 +32,11 @@ class Background:
             for start in (-offset, SCREEN_WIDTH - offset):
                 layer.draw(start + SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
                            SCREEN_WIDTH, SCREEN_HEIGHT)
-        for platform in self.level.platforms:
-            first = max(platform.left // TILE_SIZE, math.floor(camera_x / TILE_SIZE))
-            last = min(platform.right // TILE_SIZE, math.ceil((camera_x + SCREEN_WIDTH) / TILE_SIZE))
-            for col in range(first, last):
-                edge = 0 if col * TILE_SIZE == platform.left else (2 if (col + 1) * TILE_SIZE == platform.right else 1)
-                for y in range(platform.bottom, platform.top, TILE_SIZE):
-                    if y == platform.top - TILE_SIZE:
-                        tile = (1, 2, 3)[edge]
-                    elif edge != 1:
-                        tile = (11, 12, 13)[edge]
-                    else:
-                        tile = (12, 24, 57, 58)[(col * 7 + y // TILE_SIZE) % 4]
-                    self.tiles[tile].draw(col * TILE_SIZE + 16 - round(camera_x), y + 16, 32, 32)
+        first = math.floor(camera_x / TILE_SIZE)
+        last = math.ceil((camera_x + SCREEN_WIDTH) / TILE_SIZE)
+        for (col, row), tile in self.terrain.items():
+            if first <= col < last:
+                self.tiles[tile].draw(col * 32 + 16 - round(camera_x), row * 32 + 16, 32, 32)
         for name, x, y, scale in self.level.objects:
             obj = self.objects[name]
             w, h = obj.w * scale, obj.h * scale
@@ -51,7 +44,12 @@ class Background:
                 obj.draw(round(x - camera_x), y + h / 2, w, h)
 
     def draw_overlay(self, camera_x, player):
-        self.title.draw(24 + self.title.w / 2, SCREEN_HEIGHT - 36)
-        self.controls.draw(24 + self.controls.w / 2, SCREEN_HEIGHT - 88)
+        # Water is drawn over the player; its surface is never solid terrain.
+        for pool in self.level.water:
+            for x in range(pool.left, pool.right, 32):
+                if -32 <= x - camera_x <= SCREEN_WIDTH:
+                    for y in range(pool.bottom, pool.top, 32):
+                        self.tiles[10 if y == pool.top - 32 else 20].draw(
+                            x + 16 - round(camera_x), y + 16, 32, 32)
         if self.level.can_exit(player):
             self.prompt.draw(round(self.level.exit_x - camera_x), self.level.exit_y + 190)

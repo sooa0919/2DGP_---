@@ -5,7 +5,7 @@ from .settings import GROUND_HEIGHT, IMAGE_ROOT, SCREEN_HEIGHT, WORLD_WIDTH
 
 class Player:
     SIZE = 64
-    DRAW_SIZE = 88
+    DRAW_SIZE = 80
     SPEED = 240.0
     GRAVITY = 1500.0
     JUMP_SPEED = 560.0
@@ -17,7 +17,7 @@ class Player:
         self.level = level
         self.images = {
             state: pico2d.load_image(
-                str(IMAGE_ROOT / "background" / "grayscale" / "character" / f"{state}.png")
+                str(IMAGE_ROOT / "character" / state / f"{state}_blue.png")
             )
             for state in ("idle", "run")
         }
@@ -79,11 +79,20 @@ class Player:
         self.state, self.frame = "idle", 0.0
         self.keys.clear()
 
+    @property
+    def in_water(self):
+        return self.level is not None and any(
+            pool.left < self.x < pool.right
+            and self.y - self.DRAW_SIZE / 2 < pool.top
+            and self.y + self.DRAW_SIZE / 2 > pool.bottom
+            for pool in self.level.water)
+
     def _move_on_platforms(self, dt, dx):
         half = self.DRAW_SIZE / 2
         solids = self.level.platforms
         old_x = self.x
-        self.x = max(half, min(self.x + dx * self.SPEED * dt, self.level.width - half))
+        speed = self.SPEED * (0.7 if self.in_water else 1.0)
+        self.x = max(half, min(self.x + dx * speed * dt, self.level.width - half))
         for p in solids:
             if self.y + half <= p.bottom + 0.01 or self.y - half >= p.top - 0.01:
                 continue

@@ -17,10 +17,16 @@ class Sprite:
     def __init__(self, path):
         self.image = Image.open(path).convert("RGBA")
         self.w, self.h = self.image.size
+        self.opacity = 1.0
+
+    def opacify(self, opacity):
+        self.opacity = opacity
 
     def draw(self, x, y, w=None, h=None):
         w, h = round(w or self.w), round(h or self.h)
         bitmap = self.image.resize((w, h), Image.Resampling.NEAREST)
+        if self.opacity != 1.0:
+            bitmap.putalpha(bitmap.getchannel("A").point(lambda v: round(v * self.opacity)))
         canvas.paste(bitmap, (round(x - w / 2), round(648 - y - h / 2)), bitmap)
 
     def clip_composite_draw(self, x, y, w, h, angle, flip, cx, cy, dw, dh):
@@ -45,7 +51,7 @@ def main():
             for label, camera in (("start", 0), ("middle", 1100), ("exit", level.width - 1152)):
                 canvas = Image.new("RGB", (1152, 648))
                 if label == "exit":
-                    player.x, player.y = level.exit_x, level.exit_y + 44
+                    player.x, player.y = level.exit_x, level.exit_y + player.DRAW_SIZE / 2
                 background.draw(camera)
                 player.draw(camera)
                 background.draw_overlay(camera, player)

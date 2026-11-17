@@ -12,6 +12,14 @@ class Platform:
     top: int
 
 
+@dataclass(frozen=True)
+class Water:
+    left: int
+    bottom: int
+    right: int
+    top: int
+
+
 class Level:
     def __init__(self, index=0):
         self.index = index % 2
@@ -25,11 +33,20 @@ class Level:
              (39, 47, 8), (47, 54, 6), (54, 62, 4), (65, 73, 4),
              (73, 80, 6), (80, 87, 8), (87, 95, 6), (95, 120, 3)],
         )
-        self.platforms = [Platform(a * 32, 0, b * 32, h * 32)
-                          for a, b, h in routes[self.index]]
+        self.platforms = []
+        self.water = []
+        for i, (a, b, h) in enumerate(routes[self.index]):
+            if i in (4, 8, 11):
+                left, right = (a + 2) * 32, min(b - 2, a + 9) * 32
+                self.platforms += [Platform(a * 32, 0, left, h * 32),
+                                   Platform(left, 0, right, (h - 2) * 32),
+                                   Platform(right, 0, b * 32, h * 32)]
+                self.water.append(Water(left, (h - 2) * 32, right, h * 32))
+            else:
+                self.platforms.append(Platform(a * 32, 0, b * 32, h * 32))
         # Optional higher ledges provide a second route over parts of the path.
-        ledges = ([(8, 12, 6), (88, 92, 9)], [(8, 12, 6), (99, 104, 6)])
-        self.platforms += [Platform(a * 32, (h - 1) * 32, b * 32, h * 32)
+        ledges = ([(8, 14, 6), (88, 94, 9)], [(8, 13, 6), (98, 103, 6)])
+        self.platforms += [Platform(a * 32, (h - 2) * 32, b * 32, h * 32)
                            for a, b, h in ledges[self.index]]
         self.width = 120 * TILE_SIZE
         self.spawn = (200.0, 96.0)
@@ -50,3 +67,17 @@ class Level:
     def can_exit(self, player):
         return (player.grounded and abs(player.x - self.exit_x) <= 80
                 and abs(player.y - player.DRAW_SIZE / 2 - self.exit_y) < 3)
+
+    def terrain_tiles(self):
+        cells = {(x, y) for p in self.platforms
+                 for x in range(p.left // 32, p.right // 32)
+                 for y in range(p.bottom // 32, p.top // 32)}
+        tiles = {}
+        for x, y in cells:
+            left, right = (x - 1, y) in cells, (x + 1, y) in cells
+            if (x, y + 1) not in cells:
+                tile = 1 if not left else (3 if not right else 2)
+            else:
+                tile = 11 if not left else (13 if not right else 12)
+            tiles[x, y] = tile
+        return tiles
