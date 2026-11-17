@@ -78,6 +78,16 @@ def main():
                     player.update(1 / 60)
             render(camera).save(output / f"map1_{label}.png")
 
+        for color in ("blue", "grey"):
+            for phase, steps in (("rise", 8), ("fall", 28)):
+                player.enter_level(level)
+                player.has_blue = color == "blue"
+                player.grounded = False
+                player.velocity_y = player.JUMP_SPEED
+                for _ in range(steps):
+                    player.update(1 / 60)
+                render(0).save(output / f"jump_{color}_{phase}.png")
+
         player.enter_level(level)
         pool = level.water[0]
         player.x, player.y = pool.left + 160, pool.top + player.DRAW_SIZE / 2
