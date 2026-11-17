@@ -7,7 +7,7 @@ class Player:
     SIZE = 64
     DRAW_SIZE = 72
     RUN_DRAW_SIZE = 80
-    JUMP_DRAW_SIZE = 84
+    JUMP_DRAW_SIZE = 88
     # Opaque lower edge of each supplied run frame, in source pixels.
     RUN_FOOT_ROWS = (60, 64, 64, 55, 52, 60, 64, 64, 55, 52)
     JUMP_FOOT_ROWS = (60, 59, 58, 58)
