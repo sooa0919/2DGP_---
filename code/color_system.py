@@ -9,6 +9,16 @@ class ColorSystem:
 
     def __init__(self):
         self.left_down = False
+        self.last_transfer = None
+        self.transfer_serial = 0
+
+    def target_at(self, x, y, level, player):
+        """Share exact validation between hover feedback and actual clicks."""
+        if (player.x - x) ** 2 + (player.y - y) ** 2 > self.INTERACTION_RADIUS ** 2:
+            return None
+        return next((w for w in level.water
+                     if w.left <= x < w.right and w.bottom <= y <= w.top
+                     and player.has_blue != w.has_blue), None)
 
     def handle_event(self, event, level, player, camera_x):
         if event.type == pico2d.SDL_MOUSEBUTTONUP and event.button == pico2d.SDL_BUTTON_LEFT:
@@ -26,14 +36,13 @@ class ColorSystem:
             self.left_down = True
 
     def interact_at(self, x, y, level, player):
-        if (player.x - x) ** 2 + (player.y - y) ** 2 > self.INTERACTION_RADIUS ** 2:
-            return False
-        pool = next((w for w in level.water
-                     if w.left <= x < w.right and w.bottom <= y <= w.top), None)
-        if pool is None or player.has_blue == pool.has_blue:
+        pool = self.target_at(x, y, level, player)
+        if pool is None:
             return False
         player.has_blue, pool.has_blue = pool.has_blue, player.has_blue
         pool.animation_time = 0.0
         if pool.solid:
             player.resolve_solid_water(pool)
+        self.transfer_serial += 1
+        self.last_transfer = ('blue', 'reclaim' if player.has_blue else 'give')
         return True

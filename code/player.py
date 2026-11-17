@@ -196,6 +196,11 @@ class Player:
     def resolve_solid_water(self, pool):
         if (self.right > pool.left and self.left < pool.right
                 and self.bottom < pool.top and self.top > pool.bottom):
+            if getattr(pool, 'is_waterfall', False):
+                # Push sideways out of a refrozen wall, never onto its ceiling.
+                self.x = (pool.left - self.HALF_WIDTH if self.x < (pool.left + pool.right) / 2
+                          else pool.right + self.HALF_WIDTH)
+                return
             self.y = pool.top + self.FOOT_OFFSET
             self.velocity_y = 0.0
             self.grounded = True
