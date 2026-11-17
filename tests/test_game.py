@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pico2d
 
 from code.camera import Camera
+from code.color_system import ColorSystem
 from code.player import Player
 from code.level import Level, Platform
 from code.settings import GROUND_HEIGHT, SCREEN_WIDTH, WORLD_WIDTH
@@ -103,6 +104,7 @@ class PlatformerTests(unittest.TestCase):
         pool = level.water[0]
         self.player.x = (pool.left + pool.right) / 2
         self.player.y = pool.bottom + Player.DRAW_SIZE / 2
+        ColorSystem().interact_at(self.player.x, pool.top - 8, level, self.player)
         self.player.update(0.1)
         self.assertFalse(self.player.dust.puffs)
         self.player.enter_level(level)
@@ -249,6 +251,7 @@ class PlatformerTests(unittest.TestCase):
                 self.player.enter_level(level)
                 self.player.x = (pool.left + pool.right) / 2
                 self.player.y = pool.top + Player.DRAW_SIZE / 2
+                self.assertTrue(ColorSystem().interact_at(self.player.x, pool.top - 8, level, self.player))
                 self.player.grounded = False
                 self.player.update(0.8)
                 self.assertEqual(self.player.y, pool.bottom + Player.DRAW_SIZE / 2)

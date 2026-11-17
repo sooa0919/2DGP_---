@@ -22,6 +22,11 @@ class Player:
             )
             for state in ("idle", "run")
         }
+        self.gray_images = {
+            state: pico2d.load_image(str(IMAGE_ROOT / "character" / state / f"{state}_gray.png"))
+            for state in ("idle", "run")
+        }
+        self.has_blue = True
         self.x = 200.0
         self.y = GROUND_HEIGHT + self.DRAW_SIZE / 2
         self.keys = set()
@@ -74,6 +79,8 @@ class Player:
 
     def enter_level(self, level):
         self.level = level
+        level.reset_water()
+        self.has_blue = True
         self.x, floor = level.spawn
         self.y = floor + self.DRAW_SIZE / 2
         self.velocity_y = 0.0
@@ -85,14 +92,14 @@ class Player:
     @property
     def in_water(self):
         return self.level is not None and any(
-            pool.left < self.x < pool.right
+            pool.has_blue and pool.left < self.x < pool.right
             and self.y - self.DRAW_SIZE / 2 < pool.top
             and self.y + self.DRAW_SIZE / 2 > pool.bottom
             for pool in self.level.water)
 
     def _move_on_platforms(self, dt, dx):
         half = self.DRAW_SIZE / 2
-        solids = self.level.platforms
+        solids = self.level.collision_platforms()
         old_x = self.x
         speed = self.SPEED * (0.7 if self.in_water else 1.0)
         self.x = max(half, min(self.x + dx * speed * dt, self.level.width - half))
@@ -133,14 +140,14 @@ class Player:
         state = "run" if self.x != old_x or not self.grounded else "idle"
         if state != self.state:
             self.state, self.frame = state, 0.0
-        image = self.images[self.state]
+        image = self.current_images[self.state]
         count = (image.w // self.SIZE) * (image.h // self.SIZE)
         self.frame = (self.frame + self.ANIMATION_FPS[self.state] * dt) % count
         self.dust.update(dt, self, old_x)
 
     def draw(self, camera_x):
         self.dust.draw(camera_x)
-        image = self.images[self.state]
+        image = self.current_images[self.state]
         columns = image.w // self.SIZE
         row, column = divmod(int(self.frame), columns)
         # The source sprites face left, so flip them when facing right.
@@ -149,3 +156,15 @@ class Player:
             self.SIZE, self.SIZE, 0, "h" if self.facing > 0 else "",
             round(self.x - camera_x), round(self.y), self.DRAW_SIZE, self.DRAW_SIZE,
         )
+
+    @property
+    def current_images(self):
+        return self.images if self.has_blue else self.gray_images
+
+    def resolve_solid_water(self, pool):
+        half = self.DRAW_SIZE / 2
+        if (self.x + half > pool.left and self.x - half < pool.right
+                and self.y - half < pool.top and self.y + half > pool.bottom):
+            self.y = pool.top + half
+            self.velocity_y = 0.0
+            self.grounded = True

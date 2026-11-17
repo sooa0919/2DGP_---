@@ -1,4 +1,4 @@
-"""A single forest route: valleys, wooded hills and a waterfall basin."""
+"""Forest terrain and water that regains its liquid nature with blue."""
 from dataclasses import dataclass
 
 from .settings import TILE_SIZE
@@ -13,20 +13,18 @@ class Platform:
     top: int
 
 
-@dataclass(frozen=True)
+@dataclass
 class Water:
     left: int
     bottom: int
     right: int
     top: int
+    has_blue: bool = False
+    animation_time: float = 0.0
 
-
-@dataclass(frozen=True)
-class Waterfall:
-    left: int
-    bottom: int
-    top: int
-    width: int = 32
+    @property
+    def solid(self):
+        return not self.has_blue
 
 
 class Level:
@@ -42,7 +40,6 @@ class Level:
         self.water = [Water(70 * 32, 6 * 32, 76 * 32, 7 * 32),
                       Water(76 * 32, 2 * 32, 89 * 32, 3 * 32),
                       Water(115 * 32, 32, 123 * 32, 2 * 32)]
-        self.waterfalls = [Waterfall(76 * 32, 3 * 32, 7 * 32)]
         self.platforms = []
         for a, b, h in route:
             cuts = {a * 32, b * 32}
@@ -85,6 +82,15 @@ class Level:
     def at_end(self, player):
         return player.grounded and player.x >= self.end_x
 
+    def collision_platforms(self):
+        return self.platforms + [Platform(w.left, w.bottom, w.right, w.top)
+                                 for w in self.water if w.solid]
+
+    def reset_water(self):
+        for pool in self.water:
+            pool.has_blue = False
+            pool.animation_time = 0.0
+
     def terrain_tiles(self):
         cells = {(x, y) for p in self.platforms
                  for x in range(p.left // 32, p.right // 32)
@@ -92,9 +98,7 @@ class Level:
         tiles = {}
         for x, y in cells:
             left, right = (x - 1, y) in cells, (x + 1, y) in cells
-            submerged = any(w.left <= x * 32 < w.right and (y + 1) * 32 == w.bottom
-                            for w in self.water)
-            if (x, y + 1) not in cells and not submerged:
+            if (x, y + 1) not in cells:
                 tile = 1 if not left else (3 if not right else 2)
             else:
                 tile = 11 if not left else (13 if not right else 12)

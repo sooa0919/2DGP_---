@@ -9,6 +9,7 @@ from code.camera import Camera
 from code.display import clear_canvas, configure_fullscreen
 from code.player import Player
 from code.level import Level
+from code.color_system import ColorSystem
 from code.settings import SCREEN_HEIGHT, SCREEN_WIDTH
 
 
@@ -21,6 +22,7 @@ def main():
         player = Player(level)
         player.enter_level(level)
         camera = Camera(SCREEN_WIDTH, level.width)
+        colors = ColorSystem()
         previous = perf_counter()
         running = True
         while running:
@@ -34,6 +36,7 @@ def main():
                 ):
                     running = False
                 else:
+                    colors.handle_event(event, level, player, camera.x)
                     player.handle_event(event)
             if not running:
                 break

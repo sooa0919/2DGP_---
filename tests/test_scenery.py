@@ -25,3 +25,6 @@ class SceneryTests(unittest.TestCase):
                 self.assertEqual(pool.top - pool.bottom, 32)
                 self.assertTrue(any(p.left == pool.left and p.right == pool.right
                                     and p.top == pool.bottom for p in level.platforms))
+                tiles = level.terrain_tiles()
+                for x in range(pool.left // 32, pool.right // 32):
+                    self.assertIn(tiles[x, pool.bottom // 32 - 1], (1, 2, 3))

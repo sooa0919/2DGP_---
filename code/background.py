@@ -23,7 +23,7 @@ class Background:
         self.water = AnimatedWater()
 
     def update(self, dt):
-        self.water.update(dt)
+        self.water.update(dt, self.level.water)
 
     def draw(self, camera_x):
         for layer, rate in zip(self.layers, self.scroll_rates):
@@ -36,7 +36,6 @@ class Background:
         for (col, row), tile in self.terrain.items():
             if first <= col < last:
                 self.tiles[tile].draw(col * 32 + 16 - round(camera_x), row * 32 + 16, 32, 32)
-        self.water.draw_falls(self.level.waterfalls, camera_x)
         for name, x, y, scale in self.level.objects:
             obj = self.objects[name]
             left, top, right, bottom = PROP_BOUNDS[name]
@@ -46,5 +45,4 @@ class Background:
                               round(x - camera_x), y - 2 + h / 2, w, h)
 
     def draw_overlay(self, camera_x, player):
-        # Water is drawn over the player; its surface is never solid terrain.
-        self.water.draw_surface(self.level.water, self.level.waterfalls, camera_x)
+        self.water.draw_surface(self.level.water, camera_x)
