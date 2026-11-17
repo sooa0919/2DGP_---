@@ -45,8 +45,6 @@ R 또는 추락 후 복귀 시 모든 물을 흑백 고체로 되돌리고 파�
 
 캐릭터는 72×72 크기로 표시하며 색 보유 여부에 맞춰 blue / gray 이미지를 사용합니다.
 정지 시 idle, 이동과 점프 시 run을 재생합니다.
-지면에서 달릴 때 뒤쪽 발밑에 Smoke FX Lite 2A-2의 6프레임 연기를 재생합니다.
-정지·공중·물속에서는 새 연기를 생성하지 않습니다.
 
 - 흑백 자산 생성: `python tools/make_grayscale.py` (Pillow 필요)
 - 테스트: `python -m unittest discover -s tests`
@@ -55,4 +53,4 @@ R 또는 추락 후 복귀 시 모든 물을 흑백 고체로 되돌리고 파�
 `previews/`에 구간별 PNG, 전체 배치 `forest_overview.png`, 색 전달·회수의 세 상태 PNG,
 상호작용 애니메이션 `blue_transfer.gif`를 저장합니다.
 
-사용 자산: GandalfHardcore FREE Platformer Assets (자연석·물), Smoke FX Lite (달리기 연기).
+사용 자산: GandalfHardcore FREE Platformer Assets (자연석·물).

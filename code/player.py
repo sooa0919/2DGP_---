@@ -1,6 +1,5 @@
 import pico2d
 
-from .dust import RunDust
 from .settings import GROUND_HEIGHT, IMAGE_ROOT, SCREEN_HEIGHT, WORLD_WIDTH
 
 
@@ -35,7 +34,6 @@ class Player:
         self.facing = 1
         self.velocity_y = 0.0
         self.grounded = True
-        self.dust = RunDust()
 
     def handle_event(self, event):
         if event.type == pico2d.SDL_WINDOWEVENT:
@@ -87,7 +85,6 @@ class Player:
         self.grounded = True
         self.state, self.frame = "idle", 0.0
         self.keys.clear()
-        self.dust.clear()
 
     @property
     def in_water(self):
@@ -143,10 +140,8 @@ class Player:
         image = self.current_images[self.state]
         count = (image.w // self.SIZE) * (image.h // self.SIZE)
         self.frame = (self.frame + self.ANIMATION_FPS[self.state] * dt) % count
-        self.dust.update(dt, self, old_x)
 
     def draw(self, camera_x):
-        self.dust.draw(camera_x)
         image = self.current_images[self.state]
         columns = image.w // self.SIZE
         row, column = divmod(int(self.frame), columns)
