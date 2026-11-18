@@ -63,6 +63,21 @@ def main():
                                           left-camera_x+width, source_top+height)),
                                (left, level.height-bottom-height))
         overview.save(out / 'tutorial_overview.png')
+        source = level.color_sources[0]
+        colors.interact_at(source.x, source.y, level, player)
+        render(0, show_ui=False).save(out / 'tutorial_diamond_extract.png')
+        player.x = 304
+        basin = level.water[1]
+        colors.interact_at(basin.left, basin.top - 4, level, player)
+        player.x, player.y = 416, player.FOOT_OFFSET
+        frames = []
+        for _ in range(20):
+            bg.update(.1)
+            frames.append(render(0, show_ui=False))
+        frames[0].save(out / 'tutorial_diamond_waterfall.gif', save_all=True,
+                       append_images=frames[1:], duration=100, loop=0)
+        frames[0].save(out / 'tutorial_water.png')
+        level.reset()
         player.x, player.y = level.end_x + 32, level.end_y + player.FOOT_OFFSET
         camera = Camera(1152, level.width, level.height)
         camera.follow(player.x, player.y)
