@@ -20,7 +20,7 @@ class ColorSystem:
                      if w.left <= x < w.right and w.bottom <= y <= w.top
                      and player.has_blue != w.has_blue), None)
 
-    def handle_event(self, event, level, player, camera_x):
+    def handle_event(self, event, level, player, camera_x, camera_y=0):
         if event.type == pico2d.SDL_MOUSEBUTTONUP and event.button == pico2d.SDL_BUTTON_LEFT:
             self.left_down = False
         elif event.type == pico2d.SDL_WINDOWEVENT and event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
@@ -34,7 +34,8 @@ class ColorSystem:
             if not self.left_down:
                 # SDL logical-size rendering already maps mouse events to the game view.
                 if 0 <= event.x < SCREEN_WIDTH and 0 <= event.y < SCREEN_HEIGHT:
-                    self.interact_at(event.x + camera_x, SCREEN_HEIGHT - event.y, level, player)
+                    self.interact_at(event.x + camera_x, SCREEN_HEIGHT - event.y + camera_y,
+                                     level, player)
             self.left_down = True
 
     def interact_at(self, x, y, level, player):

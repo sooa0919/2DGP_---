@@ -127,7 +127,7 @@ class BlueColorTests(unittest.TestCase):
         with patch.object(game, "Level", return_value=self.level), \
              patch.object(game, "Player", return_value=self.player), \
              patch.object(game, "Background", return_value=Mock()), \
-             patch.object(game, "Camera", return_value=SimpleNamespace(x=1900, follow=lambda x: None)), \
+             patch.object(game, "Camera", return_value=SimpleNamespace(x=1900, y=0, follow=lambda x, y: None)), \
              patch.object(game, "configure_fullscreen"), patch.object(game, "clear_canvas"), \
              patch.object(self.player, "draw"), \
              patch.multiple(pico2d, open_canvas=lambda *a: None, close_canvas=lambda: None,

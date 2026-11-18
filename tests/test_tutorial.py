@@ -8,6 +8,7 @@ from code.level import Platform
 from code.tutorial import Tutorial
 from code.tutorial_level import TutorialLevel
 from code.color_system import ColorSystem
+from code.camera import Camera
 
 
 class TutorialTests(unittest.TestCase):
@@ -32,13 +33,13 @@ class TutorialTests(unittest.TestCase):
         self.player.x, self.player.y = 160, 196
         self.player.grounded = True
 
-    def test_revised_map_has_only_tiles_and_three_thin_platforms(self):
+    def test_revised_map_has_only_tiles_and_one_thin_platform(self):
         self.assertFalse(self.level.gimmicks_enabled)
         self.assertEqual(self.level.water, [])
         self.assertEqual(self.level.objects, [])
-        self.assertEqual(len(self.level.thin_platforms), 3)
+        self.assertEqual(len(self.level.thin_platforms), 1)
         self.assertTrue(all(p.one_way for p in self.level.thin_platforms))
-        self.assertEqual(self.level.spawn, (160, 128))
+        self.assertEqual(self.level.spawn, (192, 128))
 
     def test_key_repeat_does_not_finish_movement_lesson(self):
         self.key(pico2d.SDLK_a)
@@ -50,19 +51,29 @@ class TutorialTests(unittest.TestCase):
             self.key(key)
         self.assertEqual(self.ui.lesson, 'jump')
 
-    def test_adjusted_ledge_can_be_reached_then_jumped_to_upper_step(self):
-        self.player.x, self.player.y = 1360, 224 + self.player.FOOT_OFFSET
+    def test_upper_room_jump_uses_world_ceiling_and_exit_requires_upper_floor(self):
+        self.player.x = self.level.end_x + 32
+        self.player.y = self.level.end_y + self.player.FOOT_OFFSET
+        self.assertTrue(self.level.at_end(self.player))
         self.key(pico2d.SDLK_SPACE)
-        self.player.update(.8)
+        self.player.update(.2)
+        self.assertGreater(self.player.bottom, self.level.end_y)
+        self.assertFalse(self.level.at_end(self.player))
+        self.player.update(.7)
         self.assertTrue(self.player.grounded)
-        self.assertEqual(self.player.bottom, 304)
-        self.key(pico2d.SDLK_SPACE, False)
-        self.key(pico2d.SDLK_SPACE)
-        self.key(pico2d.SDLK_d)
-        self.player.update(.8)
-        self.assertGreater(self.player.x, 1472)
-        self.assertTrue(self.player.grounded)
-        self.assertEqual(self.player.bottom, 384)
+        self.assertTrue(self.level.at_end(self.player))
+        self.player.y = 128 + self.player.FOOT_OFFSET
+        self.assertFalse(self.level.at_end(self.player))
+
+    def test_camera_tracks_vertical_world_and_stops_at_edges(self):
+        camera = Camera(1152, self.level.width, self.level.height)
+        camera.follow(*self.level.spawn)
+        self.assertEqual((camera.x, camera.y), (0, 0))
+        camera.follow(2000, 1000)
+        self.assertEqual(camera.y, 676)
+        camera.follow(self.level.width, self.level.height)
+        self.assertEqual(camera.y, self.level.height - 648)
+        self.assertEqual(camera.x, self.level.width - 1152)
 
     def test_s_drops_through_only_current_platform_and_lands_on_next(self):
         self.platform_room()

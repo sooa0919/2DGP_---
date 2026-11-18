@@ -22,7 +22,7 @@ def main():
         background = Background(level)
         player = Player(level)
         player.enter_level(level)
-        camera = Camera(SCREEN_WIDTH, level.width)
+        camera = Camera(SCREEN_WIDTH, level.width, getattr(level, 'height', SCREEN_HEIGHT))
         colors = ColorSystem()
         tutorial = Tutorial() if getattr(level, 'is_tutorial', False) else None
         previous = perf_counter()
@@ -39,7 +39,7 @@ def main():
                         tutorial.handle_event(event, player)
                         if tutorial.paused:
                             continue
-                    colors.handle_event(event, level, player, camera.x)
+                    colors.handle_event(event, level, player, camera.x, camera.y)
                     player.handle_event(event)
             if not running:
                 break
@@ -48,13 +48,13 @@ def main():
                 background.update(dt)
             if tutorial:
                 tutorial.update(dt, level, player, colors)
-            camera.follow(player.x)
+            camera.follow(player.x, player.y)
             clear_canvas()
-            background.draw(camera.x)
-            player.draw(camera.x)
-            background.draw_overlay(camera.x, player)
+            background.draw(camera.x, camera.y)
+            player.draw(camera.x, camera.y)
+            background.draw_overlay(camera.x, player, camera.y)
             if tutorial:
-                tutorial.draw(level, player, colors, camera.x)
+                tutorial.draw(level, player, colors, camera.x, camera.y)
             pico2d.update_canvas()
             pico2d.delay(0.001)
     finally:

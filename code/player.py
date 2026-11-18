@@ -182,8 +182,9 @@ class Player:
             elif not p.one_way and self.velocity_y > 0 and old_top <= p.bottom + 0.01 and self.top >= p.bottom:
                 self.y = p.bottom - self.TOP_OFFSET
                 self.velocity_y = 0.0
-        if self.top > SCREEN_HEIGHT:
-            self.y = SCREEN_HEIGHT - self.TOP_OFFSET
+        world_height = getattr(self.level, 'height', SCREEN_HEIGHT)
+        if self.top > world_height:
+            self.y = world_height - self.TOP_OFFSET
             self.velocity_y = min(0.0, self.velocity_y)
         if self.top < -96:
             held_keys = self.keys.copy()
@@ -203,7 +204,7 @@ class Player:
             self.state, self.frame = state, float(start)
         self.frame = start + (self.frame - start + self.ANIMATION_FPS[state] * dt) % (end - start)
 
-    def draw(self, camera_x):
+    def draw(self, camera_x, camera_y=0):
         image = self.current_images[self.state]
         columns = image.w // self.SIZE
         row, column = divmod(int(self.frame), columns)
@@ -218,7 +219,7 @@ class Player:
         image.clip_composite_draw(
             column * self.SIZE, image.h - (row + 1) * self.SIZE,
             self.SIZE, self.SIZE, 0, "h" if flip else "",
-            round(self.x - camera_x), round(draw_y), draw_size, draw_size,
+            round(self.x - camera_x), round(draw_y - camera_y), draw_size, draw_size,
         )
 
     @property

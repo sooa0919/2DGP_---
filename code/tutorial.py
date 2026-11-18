@@ -115,9 +115,9 @@ class Tutorial:
         self.keyboard.clip_draw((col + down * cells) * 16, self.keyboard.h - (row + 1) * 16,
                                 cells * 16, 16, x, y - down * 3, width, 40)
 
-    def draw(self, level, player, colors, camera_x):
+    def draw(self, level, player, colors, camera_x, camera_y=0):
         x = max(64, min(SCREEN_WIDTH - 64, player.x - camera_x))
-        y = min(SCREEN_HEIGHT - 34, player.top + 16 + math.sin(self.time * 4) * 2)
+        y = min(SCREEN_HEIGHT - 34, player.top - camera_y + 16 + math.sin(self.time * 4) * 2)
         if self.lesson == 'move' and not self.message:
             self.key_icon(0, 0, x - 32, y + 12)
             self.key_icon(0, 3, x + 32, y + 12)
@@ -128,7 +128,7 @@ class Tutorial:
         if self.mouse_pos:
             mx, my = self.mouse_pos
             valid = (0 <= mx < SCREEN_WIDTH and 0 <= my < SCREEN_HEIGHT
-                     and colors.target_at(mx + camera_x, my, level, player))
+                     and colors.target_at(mx + camera_x, my + camera_y, level, player))
             if valid:
                 pulse = .45 + .55 * (.5 + .5 * math.sin(self.time * 10))
                 self.mouse.opacify(pulse)
