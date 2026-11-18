@@ -41,7 +41,7 @@ class TutorialLevel(Level):
         ]
 
     def collision_platforms(self):
-        return self.platforms + self.thin_platforms
+        return super().collision_platforms() + self.thin_platforms
 
     def at_end(self, player):
         return (player.grounded and player.x >= self.end_x

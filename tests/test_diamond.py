@@ -79,6 +79,37 @@ class DiamondTests(unittest.TestCase):
         self.assertTrue(self.player.grounded)
         self.assertEqual(self.player.bottom, 64)
 
+    def test_gray_waterfall_blocks_walking_and_jumping_from_both_sides(self):
+        for x, key, boundary in ((304, pico2d.SDLK_d, self.fall.left),
+                                 (544, pico2d.SDLK_a, self.fall.right)):
+            with self.subTest(key=key):
+                self.player.enter_level(self.level)
+                self.player.x = x
+                self.player.keys.add(key)
+                self.player.update(1)
+                edge = self.player.right if key == pico2d.SDLK_d else self.player.left
+                self.assertAlmostEqual(edge, boundary)
+                self.player.handle_event(Event(type=pico2d.SDL_KEYDOWN,
+                                               key=pico2d.SDLK_SPACE))
+                self.player.update(1)
+                edge = self.player.right if key == pico2d.SDLK_d else self.player.left
+                self.assertAlmostEqual(edge, boundary)
+                self.assertEqual(self.player.bottom, self.basin.top)
+
+    def test_reclaiming_blue_restores_waterfall_collision(self):
+        self.extract()
+        self.player.x = 304
+        self.colors.interact_at(self.basin.left, self.basin.top - 4,
+                                self.level, self.player)
+        self.assertFalse(self.fall.solid)
+        self.assertTrue(self.colors.interact_at(self.basin.left, self.basin.top - 4,
+                                                self.level, self.player))
+        self.assertTrue(self.fall.solid)
+        self.player.keys.add(pico2d.SDLK_d)
+        self.player.update(1)
+        self.assertAlmostEqual(self.player.right, self.fall.left)
+        self.assert_one_blue()
+
     def test_reset_after_transfer_restores_source_and_gray_character(self):
         self.extract()
         self.player.x = 304
