@@ -20,7 +20,6 @@ class Player:
     SPEED = 240.0
     GRAVITY = 1500.0
     JUMP_SPEED = 560.0
-    FAST_FALL_GRAVITY = 3000.0
     ANIMATION_FPS = {"idle": 8.0, "run": 10.0, "jump": 8.0, "fall": 8.0}
     MOVEMENT_KEYS = (pico2d.SDLK_SPACE, pico2d.SDLK_a, pico2d.SDLK_s, pico2d.SDLK_d)
 
@@ -48,12 +47,16 @@ class Player:
         self.facing = 1
         self.velocity_y = 0.0
         self.grounded = True
+        self.ignored_platforms = []
+        self.drop_serial = 0
 
     def handle_event(self, event):
         if event.type == pico2d.SDL_WINDOWEVENT:
             if event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
                 self.keys.clear()
         elif event.type == pico2d.SDL_KEYDOWN and event.key in self.MOVEMENT_KEYS:
+            if event.key == pico2d.SDLK_s and event.key not in self.keys:
+                self.drop_through()
             if event.key == pico2d.SDLK_SPACE and event.key not in self.keys and self.grounded:
                 self.velocity_y = self.JUMP_SPEED
                 self.grounded = False
@@ -73,8 +76,7 @@ class Player:
             return
         self.x += dx * self.SPEED * dt
         if not self.grounded:
-            gravity = (self.FAST_FALL_GRAVITY if pico2d.SDLK_s in self.keys
-                       else self.GRAVITY)
+            gravity = self.GRAVITY
             self.y += self.velocity_y * dt - 0.5 * gravity * dt * dt
             self.velocity_y -= gravity * dt
         self.x = max(self.HALF_WIDTH, min(self.x, WORLD_WIDTH - self.HALF_WIDTH))
@@ -97,6 +99,31 @@ class Player:
         self.grounded = True
         self.state, self.frame = "idle", 0.0
         self.keys.clear()
+        self.ignored_platforms.clear()
+        self.drop_serial = 0
+
+    @property
+    def drop_platforms(self):
+        if self.level is None or not self.grounded:
+            return []
+        return [p for p in self.level.collision_platforms()
+                if p.one_way and abs(self.bottom - p.top) < .1
+                and self.x + self.FOOT_HALF_WIDTH > p.left
+                and self.x - self.FOOT_HALF_WIDTH < p.right]
+
+    def drop_through(self):
+        supports = self.drop_platforms
+        if not supports:
+            return
+        if any(not p.one_way and abs(self.bottom - p.top) < .1
+               and self.x + self.FOOT_HALF_WIDTH > p.left
+               and self.x - self.FOOT_HALF_WIDTH < p.right
+               for p in self.level.collision_platforms()):
+            return
+        self.ignored_platforms = supports
+        self.grounded = False
+        self.velocity_y = min(self.velocity_y, -40.0)
+        self.drop_serial += 1
 
     @property
     def in_water(self):
@@ -122,11 +149,16 @@ class Player:
         return self.y + self.TOP_OFFSET
 
     def _move_on_platforms(self, dt, dx):
-        solids = self.level.collision_platforms()
+        self.ignored_platforms = [p for p in self.ignored_platforms
+                                 if self.top >= p.bottom]
+        solids = [p for p in self.level.collision_platforms()
+                  if p not in self.ignored_platforms]
         old_x = self.x
         speed = self.SPEED * (0.7 if self.in_water else 1.0)
         self.x = max(self.HALF_WIDTH, min(self.x + dx * speed * dt, self.level.width - self.HALF_WIDTH))
         for p in solids:
+            if p.one_way:
+                continue
             if self.top <= p.bottom + 0.01 or self.bottom >= p.top - 0.01:
                 continue
             if self.right > p.left and self.left < p.right:
@@ -135,7 +167,7 @@ class Player:
                 elif dx < 0 and old_x - self.HALF_WIDTH >= p.right - 0.01:
                     self.x = max(self.x, p.right + self.HALF_WIDTH)
         old_bottom, old_top = self.bottom, self.top
-        gravity = self.FAST_FALL_GRAVITY if pico2d.SDLK_s in self.keys else self.GRAVITY
+        gravity = self.GRAVITY
         self.y += self.velocity_y * dt - gravity * dt * dt / 2
         self.velocity_y -= gravity * dt
         self.grounded = False
@@ -147,7 +179,7 @@ class Player:
                     self.y = p.top + self.FOOT_OFFSET
                     self.velocity_y = 0.0
                     self.grounded = True
-            elif self.velocity_y > 0 and old_top <= p.bottom + 0.01 and self.top >= p.bottom:
+            elif not p.one_way and self.velocity_y > 0 and old_top <= p.bottom + 0.01 and self.top >= p.bottom:
                 self.y = p.bottom - self.TOP_OFFSET
                 self.velocity_y = 0.0
         if self.top > SCREEN_HEIGHT:

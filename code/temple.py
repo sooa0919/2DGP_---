@@ -9,7 +9,7 @@ from .water import AnimatedWater
 class TempleBackground(Background):
     def __init__(self, level):
         self.level = level
-        self.sheet = pico2d.load_image(str(IMAGE_ROOT / 'background/tile/Tilesetv3.png'))
+        self.sheet = pico2d.load_image(str(IMAGE_ROOT / 'background/grayscale/temple.png'))
         self.terrain = level.terrain_tiles()
         self.water = AnimatedWater()
 
@@ -17,7 +17,7 @@ class TempleBackground(Background):
         self.sheet.clip_draw(sx, self.sheet.h - sy - 16, 16, 16, x, y, size, size)
 
     def draw(self, camera_x):
-        pico2d.draw_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 21, 20, 29, filled=True)
+        pico2d.draw_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 23, 23, 23, filled=True)
         # Recessed masonry and broken wall piers recede behind the playable tiles.
         offset = int(camera_x * .24)
         for col in range(-1, 39):
@@ -40,6 +40,13 @@ class TempleBackground(Background):
                 sx, sy = ((144 + (col % 3) * 16, 144) if tile in (1, 2, 3)
                           else (96, 240 + row % 2 * 16))
                 self.tile(sx, sy, col * 32 + 16 - round(camera_x), row * 32 + 16)
+        for platform in getattr(self.level, 'thin_platforms', []):
+            for start in range(platform.left, platform.right, 32):
+                if camera_x - 32 <= start <= camera_x + SCREEN_WIDTH:
+                    self.sheet.clip_draw(160, self.sheet.h - 148, 16, 4,
+                                         start + 16 - camera_x,
+                                         (platform.bottom + platform.top) / 2,
+                                         32, platform.top - platform.bottom)
 
     def draw_overlay(self, camera_x, player):
         self.water.draw_surface(self.level.water, camera_x)

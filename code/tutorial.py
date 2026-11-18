@@ -37,6 +37,7 @@ class Tutorial:
         self.message = None
         self.complete = False
         self.paused = False
+        self.drop_serial = 0
 
     @property
     def lesson(self):
@@ -79,13 +80,17 @@ class Tutorial:
                 self.moved = all(count >= 2 for count in self.counts.values())
             elif self.lesson == 'jump' and event.key == pico2d.SDLK_SPACE and player.grounded:
                 self.jumped = True
-            elif self.lesson == 'fall' and event.key == pico2d.SDLK_s and not player.grounded:
-                self.fell = True
 
     def update(self, dt, level, player, colors):
         if self.paused:
             return
         self.time += dt
+        if player.drop_serial != self.drop_serial:
+            self.drop_serial = player.drop_serial
+            self.fell = True
+        if not getattr(level, 'gimmicks_enabled', True):
+            self.message = None
+            return
         if colors.transfer_serial != self.transfer_serial:
             self.transfer_serial = colors.transfer_serial
             if colors.last_transfer and colors.last_transfer not in self.seen_transfers:
@@ -111,14 +116,14 @@ class Tutorial:
                                 cells * 16, 16, x, y - down * 3, width, 40)
 
     def draw(self, level, player, colors, camera_x):
-        x = max(210, min(SCREEN_WIDTH - 210, player.x - camera_x))
-        y = min(SCREEN_HEIGHT - 140, player.top + 86 + math.sin(self.time * 4) * 4)
+        x = max(64, min(SCREEN_WIDTH - 64, player.x - camera_x))
+        y = min(SCREEN_HEIGHT - 34, player.top + 16 + math.sin(self.time * 4) * 2)
         if self.lesson == 'move' and not self.message:
             self.key_icon(0, 0, x - 32, y + 12)
             self.key_icon(0, 3, x + 32, y + 12)
         elif self.lesson == 'jump' and not self.message:
             self.key_icon(8, 8, x, y + 12, 96, 2)
-        elif self.lesson == 'fall' and not self.message:
+        elif self.lesson == 'fall' and player.drop_platforms and not self.message:
             self.key_icon(0, 18, x, y + 12)
         if self.mouse_pos:
             mx, my = self.mouse_pos
@@ -130,7 +135,7 @@ class Tutorial:
                 self.mouse.clip_draw(0, self.mouse.h - 16, 16, 16, mx + 30, my + 24, 40, 40)
                 self.cursor.opacify(pulse)
                 self.cursor.clip_draw(0, self.cursor.h - 16, 16, 16, mx + 5, my - 7, 32, 32)
-        if self.message:
+        if self.message and getattr(level, 'gimmicks_enabled', True):
             self.panel(184, 214, 968, 434)
             self.font.draw(216, 394, self.message[0], (241, 221, 163))
             for index, line in enumerate(self.message[1:]):

@@ -11,6 +11,7 @@ class Platform:
     bottom: int
     right: int
     top: int
+    one_way: bool = False
 
 
 @dataclass

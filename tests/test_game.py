@@ -63,13 +63,13 @@ class PlatformerTests(unittest.TestCase):
         self.assertFalse(self.player.grounded)
         self.assertEqual(self.player.velocity_y, Player.JUMP_SPEED)
 
-    def test_fast_fall_and_ground_collision(self):
+    def test_s_in_air_preserves_normal_gravity_and_ground_collision(self):
         self.key(pico2d.SDLK_SPACE)
         self.player.update(0.1)
         velocity = self.player.velocity_y
         self.key(pico2d.SDLK_s)
         self.player.update(0.1)
-        self.assertAlmostEqual(self.player.velocity_y, velocity - Player.FAST_FALL_GRAVITY * 0.1)
+        self.assertAlmostEqual(self.player.velocity_y, velocity - Player.GRAVITY * 0.1)
         for _ in range(60):
             self.player.update(1 / 60)
         self.assertEqual(self.player.y, GROUND_HEIGHT + Player.DRAW_SIZE / 2)
