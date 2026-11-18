@@ -36,10 +36,12 @@ class TempleBackground(Background):
         last = math.ceil((camera_x + SCREEN_WIDTH) / 32)
         for (col, row), tile in self.terrain.items():
             if first <= col < last:
-                # Worn stone lips above plain temple brick; no forest moss.
-                sx, sy = ((144 + (col % 3) * 16, 144) if tile in (1, 2, 3)
-                          else (96, 240 + row % 2 * 16))
-                self.tile(sx, sy, col * 32 + 16 - round(camera_x), row * 32 + 16)
+                x, y = col * 32 + 16 - round(camera_x), row * 32 + 16
+                # The stone lip has transparent padding. Keep masonry behind
+                # it so that the padding cannot expose the background.
+                self.tile(96, 240 + row % 2 * 16, x, y)
+                if tile in (1, 2, 3):
+                    self.tile(144 + (col % 3) * 16, 144, x, y)
         for platform in getattr(self.level, 'thin_platforms', []):
             for start in range(platform.left, platform.right, 32):
                 if camera_x - 32 <= start <= camera_x + SCREEN_WIDTH:
