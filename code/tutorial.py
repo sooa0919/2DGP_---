@@ -122,7 +122,7 @@ class Tutorial:
             self.key_icon(0, 0, x - 32, y + 12)
             self.key_icon(0, 3, x + 32, y + 12)
         elif self.lesson == 'jump' and not self.message:
-            self.key_icon(8, 8, x, y + 12, 96, 2)
+            self.key_icon(8, 8, x, y + 12, 64)
         elif self.lesson == 'fall' and player.drop_platforms and not self.message:
             self.key_icon(0, 18, x, y + 12)
         if self.mouse_pos:
