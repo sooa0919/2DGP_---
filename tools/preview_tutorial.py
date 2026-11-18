@@ -1,4 +1,4 @@
-"""Render game draw calls, including Galmuri UI, without a native window."""
+﻿"""Render the revised tile-only tutorial without opening a window."""
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -23,9 +23,9 @@ class Font:
 
 
 def rectangle(x1, y1, x2, y2, r=255, g=0, b=0, a=255, filled=False):
-    draw = ImageDraw.Draw(renderer.canvas)
-    draw.rectangle((int(x1), int(648-y2), int(x2), int(648-y1)),
-                   fill=(r,g,b) if filled else None, outline=(r,g,b))
+    ImageDraw.Draw(renderer.canvas).rectangle(
+        (int(x1), int(648-y2), int(x2), int(648-y1)),
+        fill=(r,g,b) if filled else None, outline=(r,g,b))
 
 
 def main():
@@ -49,31 +49,13 @@ def main():
             return renderer.canvas.copy()
 
         render(0).save(out / 'tutorial_start.png')
-        tutorial.moved = tutorial.jumped = tutorial.fell = True
-        player.x = 704
-        tutorial.mouse_pos = (736, 200)
-        render(0).save(out / 'tutorial_hover.png')
-        colors.interact_at(736, 200, level, player)
-        tutorial.update(.1, level, player, colors)
-        render(0).save(out / 'tutorial_blue.png')
-        tutorial.message = None
-        player.x, player.y = 800, 132
-        render(0).save(out / 'tutorial_water.png')
-        frames = []
-        for _ in range(16):
-            bg.update(.08)
-            tutorial.time += .08
-            frames.append(render(0))
-        frames[0].save(out/'tutorial_waterfall.gif', save_all=True,
-                       append_images=frames[1:], duration=80, loop=0)
         overview = Image.new('RGB', (level.width, 648))
-        tutorial.message = None
         for left in range(0, level.width, 1152):
             camera = min(left, level.width - 1152)
             shot = render(camera, show_ui=False)
             width = min(1152, level.width-left)
             overview.paste(shot.crop((left-camera, 0, left-camera+width, 648)), (left,0))
-        overview.resize((2048,324)).save(out/'tutorial_overview.png')
+        overview.resize((2048,324)).save(out / 'tutorial_overview.png')
 
 
 if __name__ == '__main__':
