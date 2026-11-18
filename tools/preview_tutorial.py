@@ -62,8 +62,7 @@ def main():
                 overview.paste(shot.crop((left-camera_x, source_top,
                                           left-camera_x+width, source_top+height)),
                                (left, level.height-bottom-height))
-        overview.resize((2048, level.height // 2), Image.Resampling.NEAREST).save(
-            out / 'tutorial_overview.png')
+        overview.save(out / 'tutorial_overview.png')
         player.x, player.y = level.end_x + 32, level.end_y + player.FOOT_OFFSET
         camera = Camera(1152, level.width, level.height)
         camera.follow(player.x, player.y)
