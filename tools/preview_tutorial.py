@@ -11,6 +11,7 @@ from code.temple import TempleBackground
 from code.player import Player
 from code.color_system import ColorSystem
 from code.tutorial import Tutorial
+from code.camera import Camera
 
 
 class Font:
@@ -39,23 +40,34 @@ def main():
         player.enter_level(level)
         colors, tutorial = ColorSystem(), Tutorial()
 
-        def render(camera, show_ui=True):
+        def render(camera_x, camera_y=0, show_ui=True):
             renderer.canvas = Image.new('RGB', (1152,648))
-            bg.draw(camera)
-            player.draw(camera)
-            bg.draw_overlay(camera, player)
+            bg.draw(camera_x, camera_y)
+            player.draw(camera_x, camera_y)
+            bg.draw_overlay(camera_x, player, camera_y)
             if show_ui:
-                tutorial.draw(level, player, colors, camera)
+                tutorial.draw(level, player, colors, camera_x, camera_y)
             return renderer.canvas.copy()
 
         render(0).save(out / 'tutorial_start.png')
-        overview = Image.new('RGB', (level.width, 648))
-        for left in range(0, level.width, 1152):
-            camera = min(left, level.width - 1152)
-            shot = render(camera, show_ui=False)
-            width = min(1152, level.width-left)
-            overview.paste(shot.crop((left-camera, 0, left-camera+width, 648)), (left,0))
-        overview.resize((2048,324)).save(out / 'tutorial_overview.png')
+        overview = Image.new('RGB', (level.width, level.height))
+        for bottom in range(0, level.height, 648):
+            camera_y = min(bottom, level.height - 648)
+            height = min(648, level.height - bottom)
+            source_top = 648 - (bottom - camera_y) - height
+            for left in range(0, level.width, 1152):
+                camera_x = min(left, level.width - 1152)
+                shot = render(camera_x, camera_y, show_ui=False)
+                width = min(1152, level.width-left)
+                overview.paste(shot.crop((left-camera_x, source_top,
+                                          left-camera_x+width, source_top+height)),
+                               (left, level.height-bottom-height))
+        overview.resize((2048, level.height // 2), Image.Resampling.NEAREST).save(
+            out / 'tutorial_overview.png')
+        player.x, player.y = level.end_x + 32, level.end_y + player.FOOT_OFFSET
+        camera = Camera(1152, level.width, level.height)
+        camera.follow(player.x, player.y)
+        render(camera.x, camera.y, show_ui=False).save(out / 'tutorial_exit.png')
 
 
 if __name__ == '__main__':
