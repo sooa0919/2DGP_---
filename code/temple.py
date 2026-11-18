@@ -16,7 +16,7 @@ class TempleBackground(Background):
         self.water = AnimatedWater()
         self.supports = []
         # Place background timber inside actual gaps between floors and ceilings.
-        for x in range(160, level.width, 192):
+        for x in range(192, level.width, 320):
             spans = sorted((p.bottom, p.top) for p in level.platforms
                            if p.left <= x < p.right)
             merged = []
@@ -26,31 +26,34 @@ class TempleBackground(Background):
                 else:
                     merged.append((bottom, top))
             for lower, upper in zip(merged, merged[1:]):
-                if upper[0] - lower[1] >= 96:
+                if upper[0] - lower[1] >= 128:
                     self.supports.append((x, lower[1], upper[0]))
 
-    def patch(self, sx, sy, sw, sh, x, y, width, height):
-        self.sheet.clip_draw(sx, self.sheet.h - sy - sh, sw, sh,
-                             round(x), round(y), width, height)
+    def patch(self, sx, sy, sw, sh, x, y, width, height, angle=0):
+        self.sheet.clip_composite_draw(sx, self.sheet.h - sy - sh, sw, sh,
+                                       angle, '', round(x), round(y), width, height)
 
     def draw(self, camera_x, camera_y=0):
         pico2d.draw_rectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 12, 12, 12, filled=True)
         # Continuous room walls use the atlas' complete brick panel.
-        first_x = math.floor(camera_x / 16)
-        first_y = math.floor(camera_y / 16)
+        background_size = 32
+        first_x = math.floor(camera_x / background_size)
+        first_y = math.floor(camera_y / background_size)
         self.sheet.opacify(.85)
-        for col in range(first_x, math.ceil((camera_x + SCREEN_WIDTH) / 16)):
-            for row in range(first_y, math.ceil((camera_y + SCREEN_HEIGHT) / 16)):
+        for col in range(first_x, math.ceil((camera_x + SCREEN_WIDTH) / background_size)):
+            for row in range(first_y, math.ceil((camera_y + SCREEN_HEIGHT) / background_size)):
                 self.patch(1152 + col % 9 * 16, 464 + row % 7 * 16, 16, 16,
-                           col * 16 + 8 - camera_x, row * 16 + 8 - camera_y, 16, 16)
+                           col * background_size + background_size / 2 - camera_x,
+                           row * background_size + background_size / 2 - camera_y,
+                           background_size, background_size)
         self.sheet.opacify(.72)
         for x, floor, ceiling in self.supports:
-            if camera_x - 72 <= x <= camera_x + SCREEN_WIDTH + 72:
+            if camera_x - 144 <= x <= camera_x + SCREEN_WIDTH + 144:
                 self.patch(1872, 176, 144, 32, x - camera_x,
-                           ceiling - 16 - camera_y, 144, 32)
+                           ceiling - 32 - camera_y, 288, 64)
                 self.patch(1936, 208, 16, 80, x - camera_x,
-                           (floor + ceiling - 32) / 2 - camera_y,
-                           16, ceiling - floor - 32)
+                           (floor + ceiling - 64) / 2 - camera_y,
+                           32, ceiling - floor - 64)
         size = self.size
         for col, row in self.terrain:
             if not (camera_x - size < col * size < camera_x + SCREEN_WIDTH
@@ -66,14 +69,12 @@ class TempleBackground(Background):
             self.patch(1152 + col % 9 * 16, 464 + row % 7 * 16,
                        16, 16, x, y, size, size)
             self.sheet.opacify(1)
-            if (col - 1, row) not in self.terrain:
-                self.patch(528, 576, 16, 16, x, y, size, size)
-            if (col + 1, row) not in self.terrain:
-                self.patch(176, 576, 16, 16, x, y, size, size)
-            if (col, row - 1) not in self.terrain:
-                self.patch(240 + col % 3 * 16, 480, 16, 16, x, y, size, size)
-            if (col, row + 1) not in self.terrain:
-                self.patch(240 + col % 3 * 16, 720, 16, 16, x, y, size, size)
+            # Rotate the same bright stone trim toward every exposed face.
+            for dx, dy, angle in ((-1, 0, math.pi / 2), (1, 0, -math.pi / 2),
+                                  (0, -1, math.pi), (0, 1, 0)):
+                if (col + dx, row + dy) not in self.terrain:
+                    self.patch(240 + (col + row) % 3 * 16, 720, 16, 16,
+                               x, y, size, size, angle)
         self.sheet.opacify(1)
         for platform in getattr(self.level, 'thin_platforms', []):
             for start in range(platform.left, platform.right, size):

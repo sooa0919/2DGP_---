@@ -1,5 +1,6 @@
 """Render the actual scene draw calls to PNGs without opening a game window."""
 import sys
+import math
 from pathlib import Path
 from unittest.mock import patch
 
@@ -36,6 +37,9 @@ class Sprite:
         self.image = original.crop((x, self.h - y - h, x + w, self.h - y))
         if flip == "h":
             self.image = ImageOps.mirror(self.image)
+        if angle:
+            self.image = self.image.rotate(math.degrees(angle),
+                                           resample=Image.Resampling.NEAREST, expand=True)
         self.draw(cx, cy, dw, dh)
         self.image = original
 
