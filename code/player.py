@@ -38,7 +38,7 @@ class Player:
         }
         self.images["fall"] = self.images["jump"]
         self.gray_images["fall"] = self.gray_images["jump"]
-        self.has_blue = True
+        self.has_blue = getattr(level, 'starting_blue', False)
         self.x = 200.0
         self.y = GROUND_HEIGHT + self.DRAW_SIZE / 2
         self.keys = set()
@@ -91,8 +91,8 @@ class Player:
 
     def enter_level(self, level):
         self.level = level
-        level.reset_water()
-        self.has_blue = True
+        level.reset()
+        self.has_blue = getattr(level, 'starting_blue', False)
         self.x, floor = level.spawn
         self.y = floor + self.DRAW_SIZE / 2
         self.velocity_y = 0.0

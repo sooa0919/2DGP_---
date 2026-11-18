@@ -88,7 +88,7 @@ class Tutorial:
         if player.drop_serial != self.drop_serial:
             self.drop_serial = player.drop_serial
             self.fell = True
-        if not getattr(level, 'gimmicks_enabled', True):
+        if not getattr(level, 'show_color_messages', getattr(level, 'gimmicks_enabled', True)):
             self.message = None
             return
         if colors.transfer_serial != self.transfer_serial:
@@ -135,7 +135,7 @@ class Tutorial:
                 self.mouse.clip_draw(0, self.mouse.h - 16, 16, 16, mx + 30, my + 24, 40, 40)
                 self.cursor.opacify(pulse)
                 self.cursor.clip_draw(0, self.cursor.h - 16, 16, 16, mx + 5, my - 7, 32, 32)
-        if self.message and getattr(level, 'gimmicks_enabled', True):
+        if self.message and getattr(level, 'show_color_messages', getattr(level, 'gimmicks_enabled', True)):
             self.panel(184, 214, 968, 434)
             self.font.draw(216, 394, self.message[0], (241, 221, 163))
             for index, line in enumerate(self.message[1:]):

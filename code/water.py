@@ -29,10 +29,10 @@ class AnimatedWater:
     def frame_for(cls, pool):
         return int(pool.animation_time * 6 + 1e-9) % cls.SURFACE_FRAMES if pool.has_blue else 0
 
-    def draw_surface(self, pools, camera_x):
+    def draw_surface(self, pools, camera_x, camera_y=0):
         for pool in pools:
             if getattr(pool, 'is_waterfall', False):
-                self.draw_fall(pool, camera_x)
+                self.draw_fall(pool, camera_x, camera_y)
                 continue
             image = self.blue_surface if pool.has_blue else self.gray_surface
             frame = self.frame_for(pool)
@@ -46,12 +46,12 @@ class AnimatedWater:
                     if pool.top - pool.bottom > 32:
                         image.clip_draw(0, image.h - frame * 64 - 60, width, 24,
                                         round(start + width / 2 - camera_x),
-                                        (pool.bottom + pool.top - 28) / 2,
+                                        (pool.bottom + pool.top - 28) / 2 - camera_y,
                                         width, pool.top - pool.bottom - 28)
                     image.clip_draw(0, image.h - frame * 64 - 32, width, 28,
-                                    round(start + width / 2 - camera_x), pool.top - 16, width, 32)
+                                    round(start + width / 2 - camera_x), pool.top - 16 - camera_y, width, 32)
 
-    def draw_fall(self, pool, camera_x):
+    def draw_fall(self, pool, camera_x, camera_y=0):
         if pool.right < camera_x or pool.left > camera_x + SCREEN_WIDTH:
             return
         image = self.falls if pool.has_blue else self.gray_falls
@@ -62,15 +62,15 @@ class AnimatedWater:
         for x in range(pool.left, pool.right, 32):
             y = pool.bottom - offset
             while y < pool.top:
-                bottom, top = max(y, pool.bottom), min(y + 128, pool.top)
+                bottom, top = max(round(y), pool.bottom), min(round(y + 128), pool.top)
                 if top > bottom:
                     source_y = image.h - 192 + int((bottom - y) / 2)
                     source_h = max(1, int((top - bottom) / 2))
                     image.clip_draw(frame * 32 + 16, source_y, 16, source_h,
-                                    x + 16 - camera_x, (bottom + top) / 2, 32, top - bottom)
+                                    x + 16 - camera_x, (bottom + top) / 2 - camera_y, 32, top - bottom)
                 y += 128
         # Foam at the foot shares the falling animation and remains still gray.
         foam = self.blue_surface if pool.has_blue else self.gray_surface
         foam.clip_draw(0, foam.h - self.frame_for(pool) * 64 - 20, 160, 16,
-                       (pool.left + pool.right) / 2 - camera_x, pool.bottom,
+                       (pool.left + pool.right) / 2 - camera_x, pool.bottom - camera_y,
                        pool.right - pool.left + 32, 24)

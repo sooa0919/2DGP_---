@@ -1,4 +1,4 @@
-"""One blue color shared between the character and the clicked water pool."""
+"""Transfer one blue color between a diamond, the character and water."""
 import pico2d
 
 from .settings import SCREEN_HEIGHT, SCREEN_WIDTH
@@ -16,7 +16,8 @@ class ColorSystem:
         """Share exact validation between hover feedback and actual clicks."""
         if (player.x - x) ** 2 + (player.y - y) ** 2 > self.INTERACTION_RADIUS ** 2:
             return None
-        return next((w for w in level.water
+        targets = list(getattr(level, 'color_sources', [])) + level.water
+        return next((w for w in targets
                      if w.left <= x < w.right and w.bottom <= y <= w.top
                      and player.has_blue != w.has_blue), None)
 
@@ -44,10 +45,13 @@ class ColorSystem:
             return False
         player.has_blue, pool.has_blue = pool.has_blue, player.has_blue
         pool.animation_time = 0.0
-        if pool.solid:
+        is_source = any(pool is source for source in getattr(level, 'color_sources', []))
+        if not is_source and pool.solid:
             for part in level.water:
                 if part.color_owner is pool.color_owner:
                     player.resolve_solid_water(part)
         self.transfer_serial += 1
-        self.last_transfer = ('blue', 'reclaim' if player.has_blue else 'give')
+        action = ('extract' if player.has_blue else 'deposit') if is_source else (
+            'reclaim' if player.has_blue else 'give')
+        self.last_transfer = ('blue', action)
         return True

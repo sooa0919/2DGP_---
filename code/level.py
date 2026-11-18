@@ -62,6 +62,8 @@ class ConnectedWater(Water):
 
 
 class Level:
+    starting_blue = True
+
     def __init__(self):
         self.name = "SILENT GROVE"
         # Broad lowlands, smaller rises, a wooded ridge, then an open river.
@@ -124,6 +126,11 @@ class Level:
         for pool in self.water:
             pool.has_blue = False
             pool.animation_time = 0.0
+
+    def reset(self):
+        self.reset_water()
+        for source in getattr(self, 'color_sources', []):
+            source.reset()
 
     def terrain_tiles(self):
         size = getattr(self, 'tile_size', TILE_SIZE)

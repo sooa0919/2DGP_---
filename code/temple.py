@@ -4,6 +4,7 @@ import pico2d
 from .background import Background
 from .settings import IMAGE_ROOT, SCREEN_WIDTH, SCREEN_HEIGHT
 from .water import AnimatedWater
+from .diamond import DiamondRenderer
 
 
 class TempleBackground(Background):
@@ -14,6 +15,7 @@ class TempleBackground(Background):
             IMAGE_ROOT / 'background/grayscale/main_lev_build.png'))
         self.terrain = level.terrain_tiles()
         self.water = AnimatedWater()
+        self.diamonds = DiamondRenderer() if getattr(level, 'color_sources', []) else None
         self.supports = []
         # Place background timber inside actual gaps between floors and ceilings.
         for x in range(192, level.width, 320):
@@ -28,6 +30,11 @@ class TempleBackground(Background):
             for lower, upper in zip(merged, merged[1:]):
                 if upper[0] - lower[1] >= 128:
                     self.supports.append((x, lower[1], upper[0]))
+
+    def update(self, dt):
+        self.water.update(dt, self.level.water)
+        for source in getattr(self.level, 'color_sources', []):
+            source.update(dt)
 
     def patch(self, sx, sy, sw, sh, x, y, width, height, angle=0):
         self.sheet.clip_composite_draw(sx, self.sheet.h - sy - sh, sw, sh,
@@ -84,4 +91,6 @@ class TempleBackground(Background):
                            width, platform.top - platform.bottom)
 
     def draw_overlay(self, camera_x, player, camera_y=0):
-        self.water.draw_surface(self.level.water, camera_x)
+        self.water.draw_surface(self.level.water, camera_x, camera_y)
+        if self.diamonds:
+            self.diamonds.draw(self.level.color_sources, camera_x, camera_y)

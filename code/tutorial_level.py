@@ -1,10 +1,13 @@
 """Tile-only temple blockout following the annotated tutorial reference."""
-from .level import Level, Platform
+from .level import Level, Platform, Water, ConnectedWater
+from .diamond import Diamond
 
 
 class TutorialLevel(Level):
     is_tutorial = True
-    gimmicks_enabled = False
+    gimmicks_enabled = True
+    show_color_messages = False
+    starting_blue = False
 
     def __init__(self):
         self.name = "무너진 사원"
@@ -19,6 +22,7 @@ class TutorialLevel(Level):
         # room has 144px of headroom for the player's 63px body.
         self.platforms = [Platform(*bounds) for bounds in (
             (0, 0, 336, 64), (512, 0, 1408, 64),
+            (336, -16, 512, 0),
             (1408, 0, 1792, 448),
             (0, 64, 64, 624),
             (0, 208, 288, 288),
@@ -29,7 +33,9 @@ class TutorialLevel(Level):
             (592, 608, 1792, 624),
             (0, 624, 1792, 672),
         )]
-        self.water = []
+        fall = Water(384, 64, 448, 288, is_waterfall=True)
+        self.water = [fall, ConnectedWater(336, 0, 512, 64, fall)]
+        self.color_sources = [Diamond(192, 112)]
         self.thin_platforms = [
             Platform(512, 504, 592, 512, one_way=True),
         ]

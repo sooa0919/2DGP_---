@@ -33,9 +33,10 @@ class TutorialTests(unittest.TestCase):
         self.player.x, self.player.y = 160, 196
         self.player.grounded = True
 
-    def test_revised_map_has_only_tiles_and_one_thin_platform(self):
-        self.assertFalse(self.level.gimmicks_enabled)
-        self.assertEqual(self.level.water, [])
+    def test_tutorial_has_first_blue_puzzle_and_one_thin_platform(self):
+        self.assertTrue(self.level.gimmicks_enabled)
+        self.assertEqual(len(self.level.water), 2)
+        self.assertEqual(len(self.level.color_sources), 1)
         self.assertEqual(self.level.objects, [])
         self.assertEqual(len(self.level.thin_platforms), 1)
         self.assertTrue(all(p.one_way for p in self.level.thin_platforms))
