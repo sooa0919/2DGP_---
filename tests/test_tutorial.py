@@ -50,6 +50,20 @@ class TutorialTests(unittest.TestCase):
             self.key(key)
         self.assertEqual(self.ui.lesson, 'jump')
 
+    def test_adjusted_ledge_can_be_reached_then_jumped_to_upper_step(self):
+        self.player.x, self.player.y = 1360, 224 + self.player.FOOT_OFFSET
+        self.key(pico2d.SDLK_SPACE)
+        self.player.update(.8)
+        self.assertTrue(self.player.grounded)
+        self.assertEqual(self.player.bottom, 304)
+        self.key(pico2d.SDLK_SPACE, False)
+        self.key(pico2d.SDLK_SPACE)
+        self.key(pico2d.SDLK_d)
+        self.player.update(.8)
+        self.assertGreater(self.player.x, 1472)
+        self.assertTrue(self.player.grounded)
+        self.assertEqual(self.player.bottom, 384)
+
     def test_s_drops_through_only_current_platform_and_lands_on_next(self):
         self.platform_room()
         self.key(pico2d.SDLK_s)

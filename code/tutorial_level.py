@@ -15,6 +15,7 @@ class TutorialLevel(Level):
         # Revised reference, rounded to the existing 32px tile grid.
         self.platforms = [Platform(*bounds) for bounds in (
             (0, 0, 640, 128),
+            (640, 0, 1152, 128),
             (1152, 0, 1472, 224), (1472, 0, 1760, 384),
             (1760, 0, 2976, 64),
             (2304, 160, 2464, 256), (2464, 224, 2976, 256),
@@ -26,7 +27,7 @@ class TutorialLevel(Level):
         self.water = []
         self.thin_platforms = [
             Platform(640, 116, 1632, 128, one_way=True),
-            Platform(1168, 372, 1472, 384, one_way=True),
+            Platform(1264, 292, 1472, 304, one_way=True),
             Platform(2304, 340, 3104, 352, one_way=True),
         ]
 

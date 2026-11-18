@@ -43,10 +43,11 @@ class TempleBackground(Background):
         for platform in getattr(self.level, 'thin_platforms', []):
             for start in range(platform.left, platform.right, 32):
                 if camera_x - 32 <= start <= camera_x + SCREEN_WIDTH:
+                    width = min(32, platform.right - start)
                     self.sheet.clip_draw(160, self.sheet.h - 148, 16, 4,
-                                         start + 16 - camera_x,
+                                         start + width / 2 - camera_x,
                                          (platform.bottom + platform.top) / 2,
-                                         32, platform.top - platform.bottom)
+                                         width, platform.top - platform.bottom)
 
     def draw_overlay(self, camera_x, player):
         self.water.draw_surface(self.level.water, camera_x)
