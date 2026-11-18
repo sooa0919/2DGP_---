@@ -8,28 +8,30 @@ class TutorialLevel(Level):
 
     def __init__(self):
         self.name = "무너진 사원"
-        self.width = 4096
-        self.height = 1536
-        self.spawn = (192.0, 128.0)
-        self.end_x = 3968
-        self.end_y = 1024
+        self.tile_size = 16
+        self.width = 1792
+        self.height = 672
+        self.spawn = (96.0, 64.0)
+        self.end_x = 1728
+        self.end_y = 448
         self.objects = []
-        # Revised reference, rounded to the existing 32px tile grid.
+        # Reference scaled to 7/16 and snapped to 16px tiles. The starting
+        # room has 144px of headroom for the player's 63px body.
         self.platforms = [Platform(*bounds) for bounds in (
-            (0, 0, 768, 128), (1184, 0, 3232, 128),
-            (3232, 0, 4096, 1024),
-            (0, 128, 128, 1440),
-            (0, 480, 672, 672),
-            (1216, 416, 1568, 672),
-            (0, 672, 1568, 928),
-            (608, 928, 1152, 1152),
-            (1344, 1184, 2592, 1408),
-            (1344, 1408, 4096, 1440),
-            (0, 1440, 4096, 1536),
+            (0, 0, 336, 64), (512, 0, 1408, 64),
+            (1408, 0, 1792, 448),
+            (0, 64, 64, 624),
+            (0, 208, 288, 288),
+            (528, 176, 688, 288),
+            (0, 288, 688, 400),
+            (272, 400, 512, 512),
+            (592, 512, 1136, 608),
+            (592, 608, 1792, 624),
+            (0, 624, 1792, 672),
         )]
         self.water = []
         self.thin_platforms = [
-            Platform(1152, 1156, 1344, 1168, one_way=True),
+            Platform(512, 504, 592, 512, one_way=True),
         ]
 
     def collision_platforms(self):

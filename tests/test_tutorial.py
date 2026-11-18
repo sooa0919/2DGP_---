@@ -39,7 +39,12 @@ class TutorialTests(unittest.TestCase):
         self.assertEqual(self.level.objects, [])
         self.assertEqual(len(self.level.thin_platforms), 1)
         self.assertTrue(all(p.one_way for p in self.level.thin_platforms))
-        self.assertEqual(self.level.spawn, (192, 128))
+        self.assertEqual(self.level.spawn, (96, 64))
+        ceiling = min(p.bottom for p in self.level.platforms
+                      if p.left <= self.player.x < p.right and p.bottom > self.player.top)
+        body_height = self.player.TOP_OFFSET + self.player.FOOT_OFFSET
+        self.assertGreaterEqual((ceiling - self.player.bottom) / body_height, 2)
+        self.assertLessEqual((ceiling - self.player.bottom) / body_height, 2.5)
 
     def test_key_repeat_does_not_finish_movement_lesson(self):
         self.key(pico2d.SDLK_a)
@@ -66,14 +71,14 @@ class TutorialTests(unittest.TestCase):
         self.assertFalse(self.level.at_end(self.player))
 
     def test_camera_tracks_vertical_world_and_stops_at_edges(self):
-        camera = Camera(1152, self.level.width, self.level.height)
+        camera = Camera(1152, 4096, 1536)
         camera.follow(*self.level.spawn)
         self.assertEqual((camera.x, camera.y), (0, 0))
         camera.follow(2000, 1000)
         self.assertEqual(camera.y, 676)
-        camera.follow(self.level.width, self.level.height)
-        self.assertEqual(camera.y, self.level.height - 648)
-        self.assertEqual(camera.x, self.level.width - 1152)
+        camera.follow(4096, 1536)
+        self.assertEqual(camera.y, 1536 - 648)
+        self.assertEqual(camera.x, 4096 - 1152)
 
     def test_s_drops_through_only_current_platform_and_lands_on_next(self):
         self.platform_room()
@@ -111,6 +116,8 @@ class TutorialTests(unittest.TestCase):
         self.assertEqual(self.player.drop_serial, 0)
 
     def test_s_in_air_keeps_normal_gravity(self):
+        self.level.platforms = [Platform(0, 0, 640, 64)]
+        self.level.thin_platforms = []
         self.key(pico2d.SDLK_SPACE)
         self.player.update(.1)
         velocity = self.player.velocity_y

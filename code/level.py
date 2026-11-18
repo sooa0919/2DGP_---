@@ -126,9 +126,10 @@ class Level:
             pool.animation_time = 0.0
 
     def terrain_tiles(self):
+        size = getattr(self, 'tile_size', TILE_SIZE)
         cells = {(x, y) for p in self.platforms
-                 for x in range(p.left // 32, p.right // 32)
-                 for y in range(p.bottom // 32, p.top // 32)}
+                 for x in range(p.left // size, p.right // size)
+                 for y in range(p.bottom // size, p.top // size)}
         tiles = {}
         for x, y in cells:
             left, right = (x - 1, y) in cells, (x + 1, y) in cells
