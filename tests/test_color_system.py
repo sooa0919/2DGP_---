@@ -104,6 +104,7 @@ class BlueColorTests(unittest.TestCase):
         self.player.images["idle"] = Mock(w=512, h=128)
         self.player.gray_images["idle"] = Mock(w=512, h=128)
         self.click()
+        self.player.update(self.player.interaction.DURATION)
         self.player.draw(1900)
         self.player.gray_images["idle"].clip_composite_draw.assert_called_once()
         self.player.images["idle"].clip_composite_draw.assert_not_called()

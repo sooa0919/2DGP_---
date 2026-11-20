@@ -40,7 +40,7 @@ class TitleTests(unittest.TestCase):
     def test_only_left_click_activates_and_escape_returns_to_main(self):
         self.assertIsNone(self.title.handle_event(self.point('start', button=pico2d.SDL_BUTTON_RIGHT)))
         self.assertEqual(self.title.menu, 'main')
-        self.assertIsNone(self.title.handle_event(self.point('settings')))
+        self.assertEqual(self.title.handle_event(self.point('settings')), 'settings')
         self.assertEqual(self.title.handle_event(self.point('quit')), 'quit')
         self.title.handle_event(self.point('start'))
         self.title.handle_event(Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_ESCAPE))

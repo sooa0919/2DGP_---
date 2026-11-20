@@ -68,6 +68,7 @@ class DiamondTests(unittest.TestCase):
         self.assert_one_blue()
         self.water.update(.2, self.level.water)
         self.assertAlmostEqual(self.fall.animation_time, .2)
+        self.player.interaction.update(self.player.interaction.DURATION)
         self.player.keys.add(pico2d.SDLK_d)
         for _ in range(65):
             self.player.update(1 / 60)
@@ -105,6 +106,7 @@ class DiamondTests(unittest.TestCase):
         self.assertTrue(self.colors.interact_at(self.basin.left, self.basin.top - 4,
                                                 self.level, self.player))
         self.assertTrue(self.fall.solid)
+        self.player.interaction.update(self.player.interaction.DURATION)
         self.player.keys.add(pico2d.SDLK_d)
         self.player.update(1)
         self.assertAlmostEqual(self.player.right, self.fall.left)

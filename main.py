@@ -14,6 +14,7 @@ from code.color_system import ColorSystem
 from code.settings import SCREEN_HEIGHT, SCREEN_WIDTH
 from code.title import TitleScreen
 from code.loading import LoadingScreen
+from code.settings_menu import SettingsMenu
 
 
 def main():
@@ -22,6 +23,8 @@ def main():
         configure_fullscreen()
         title = TitleScreen()
         loading = None
+        settings_ui = None
+        settings_open = False
         previous = perf_counter()
         running = True
         while running:
@@ -34,6 +37,19 @@ def main():
                     break
                 elif loading is not None:
                     continue
+                elif settings_open:
+                    action = settings_ui.handle_event(event)
+                    if action == 'quit':
+                        running = False
+                        break
+                    if action in ('close', 'title'):
+                        settings_open = False
+                        if action == 'title':
+                            title = TitleScreen()
+                            level = background = player = camera = colors = tutorial = None
+                        previous = perf_counter()
+                        dt = 0.0
+                        break
                 elif title is not None:
                     action = title.handle_event(event)
                     if action == 'quit':
@@ -42,7 +58,23 @@ def main():
                     if action == 'new':
                         loading = LoadingScreen()
                         break
+                    if action == 'settings':
+                        if settings_ui is None:
+                            settings_ui = SettingsMenu()
+                        settings_ui.open(in_game=False)
+                        settings_open = True
                 else:
+                    if event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_ESCAPE:
+                        if settings_ui is None:
+                            settings_ui = SettingsMenu()
+                        settings_ui.open(in_game=True)
+                        settings_open = True
+                        player.keys.clear()
+                        colors.left_down = False
+                        if tutorial:
+                            tutorial.pressed.clear()
+                            tutorial.mouse_pos = None
+                        continue
                     if tutorial:
                         tutorial.handle_event(event, player)
                         if tutorial.paused:
@@ -77,13 +109,15 @@ def main():
             if title is not None:
                 clear_canvas()
                 title.draw()
+                if settings_open:
+                    settings_ui.draw()
                 pico2d.update_canvas()
                 pico2d.delay(0.001)
                 continue
-            if loading is None and (not tutorial or not tutorial.paused):
+            if not settings_open and loading is None and (not tutorial or not tutorial.paused):
                 player.update(dt)
                 background.update(dt)
-            if tutorial and loading is None:
+            if tutorial and loading is None and not settings_open:
                 tutorial.update(dt, level, player, colors)
             camera.follow(player.x, player.y)
             clear_canvas()
@@ -92,6 +126,8 @@ def main():
             background.draw_overlay(camera.x, player, camera.y)
             if tutorial:
                 tutorial.draw(level, player, colors, camera.x, camera.y)
+            if settings_open:
+                settings_ui.draw()
             if loading is not None:
                 loading.draw()
                 if loading.done:

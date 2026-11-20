@@ -61,7 +61,7 @@ class TitleScreen:
                 selected = self.hovered
                 if selected == 'start':
                     self.menu = 'start'
-                elif selected in ('new', 'quit'):
+                elif selected in ('new', 'quit', 'settings'):
                     return selected
         return None
 

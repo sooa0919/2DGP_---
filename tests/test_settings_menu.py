@@ -1,0 +1,104 @@
+import unittest
+from types import SimpleNamespace as Event
+from unittest.mock import Mock, patch
+
+import pico2d
+
+from code.settings_menu import SettingsMenu
+
+
+class SettingsMenuTests(unittest.TestCase):
+    def setUp(self):
+        with patch('pico2d.load_image', return_value=Mock(h=1086)), \
+             patch('pico2d.load_font', return_value=Mock()):
+            self.menu = SettingsMenu()
+
+    def click(self, x, y, button=pico2d.SDL_BUTTON_LEFT):
+        return self.menu.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONDOWN,
+                                            x=x, y=648-y, button=button))
+
+    def test_tabs_and_close_use_logical_mouse_coordinates(self):
+        for index, y in enumerate(self.menu.TAB_Y):
+            self.click(300, y)
+            self.assertEqual(self.menu.tab, index)
+        self.click(300, self.menu.TAB_Y[0], pico2d.SDL_BUTTON_RIGHT)
+        self.assertEqual(self.menu.tab, 3)
+        self.assertIsNone(self.click(10, 10))
+        self.assertEqual(self.click(850, 85), 'close')
+        self.assertEqual(self.menu.handle_event(Event(type=pico2d.SDL_KEYDOWN,
+                                                      key=pico2d.SDLK_ESCAPE)), 'close')
+
+    def test_settings_controls_remain_previews(self):
+        self.menu.tab = 2
+        self.assertIsNone(self.click(700, 352))
+        self.assertEqual(self.menu.tab, 2)
+        self.assertIsNone(self.click(280, 85))
+        self.menu.open()
+        self.assertIsNone(self.menu.mouse)
+        with patch('pico2d.draw_rectangle'):
+            for self.menu.tab in range(4):
+                self.menu.draw()
+
+    def test_title_and_quit_buttons_return_actions_only_on_left_click(self):
+        self.menu.open(in_game=False)
+        self.assertEqual(tuple(self.menu.action_bounds), ('quit',))
+        self.assertIsNone(self.click(480, 85))
+        self.assertIsNone(self.click(280, 85))
+        self.assertEqual(self.click(670, 85), 'quit')
+        self.menu.open(in_game=True)
+        self.assertEqual(tuple(self.menu.action_bounds), ('save', 'title', 'quit'))
+        self.assertEqual(self.click(480, 85), 'title')
+        self.assertEqual(self.click(670, 85), 'quit')
+        self.assertIsNone(self.click(480, 85, pico2d.SDL_BUTTON_RIGHT))
+        self.assertIsNone(self.click(670, 85, pico2d.SDL_BUTTON_RIGHT))
+
+    def test_return_to_title_allows_fresh_game_and_quit_closes_canvas(self):
+        import main
+        click = Event(type=pico2d.SDL_MOUSEBUTTONDOWN, button=1, x=180, y=278)
+        esc = Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_ESCAPE)
+        frames = iter([[click], [esc], [click], [click], [esc], [click]])
+        menu = Mock(handle_event=Mock(side_effect=['title', 'quit']))
+        title = Mock(return_value=Mock(handle_event=Mock(return_value='new')))
+        factory = Mock(return_value=Event(width=1792, height=672, is_tutorial=False))
+        close = Mock()
+        with patch.multiple(main, configure_fullscreen=Mock(), clear_canvas=Mock(),
+                            TitleScreen=title, SettingsMenu=Mock(return_value=menu),
+                            LoadingScreen=Mock(return_value=Mock(needs_level=True, phase='done', done=True)),
+                            Level=factory, Player=Mock(return_value=Mock()),
+                            Background=Mock(return_value=Mock()), Camera=Mock(return_value=Mock(x=0, y=0)),
+                            ColorSystem=Mock(return_value=Mock())), \
+             patch.multiple(pico2d, open_canvas=Mock(), close_canvas=close,
+                            update_canvas=Mock(), delay=Mock(), get_events=lambda: next(frames)):
+            main.main()
+        self.assertEqual(title.call_count, 2)
+        self.assertEqual(factory.call_count, 2)
+        close.assert_called_once()
+
+    def test_main_opens_from_title_and_play_and_pauses_input_and_updates(self):
+        import main
+        click = Event(type=pico2d.SDL_MOUSEBUTTONDOWN, button=1, x=180, y=278)
+        esc = Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_ESCAPE)
+        move = Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_d)
+        frames = iter([[click], [move], [esc], [click], [esc], [move], [esc],
+                       [Event(type=pico2d.SDL_QUIT)]])
+        menu = Mock(handle_event=Mock(side_effect=[None, 'close', None, 'close']))
+        player, background, colors = Mock(), Mock(), Mock()
+        with patch.multiple(main, configure_fullscreen=Mock(), clear_canvas=Mock(),
+                            TitleScreen=Mock(return_value=Mock(handle_event=Mock(side_effect=['settings', 'new']))),
+                            SettingsMenu=Mock(return_value=menu),
+                            LoadingScreen=Mock(return_value=Mock(needs_level=True, phase='done', done=True)),
+                            Level=Mock(return_value=Event(width=1792, height=672, is_tutorial=False)),
+                            Player=Mock(return_value=player), Background=Mock(return_value=background),
+                            Camera=Mock(return_value=Mock(x=0, y=0)), ColorSystem=Mock(return_value=colors)), \
+             patch.multiple(pico2d, open_canvas=Mock(), close_canvas=Mock(),
+                            update_canvas=Mock(), delay=Mock(), get_events=lambda: next(frames)):
+            main.main()
+        self.assertEqual(menu.open.call_count, 2)
+        self.assertEqual([call.kwargs for call in menu.open.call_args_list],
+                         [{'in_game': False}, {'in_game': True}])
+        self.assertEqual(menu.draw.call_count, 4)
+        player.handle_event.assert_not_called()
+        colors.handle_event.assert_not_called()
+        player.update.assert_called_once_with(0.0)
+        background.update.assert_called_once_with(0.0)
+        player.keys.clear.assert_called_once()

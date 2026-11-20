@@ -54,4 +54,5 @@ class ColorSystem:
         action = ('extract' if player.has_blue else 'deposit') if is_source else (
             'reclaim' if player.has_blue else 'give')
         self.last_transfer = ('blue', action)
+        player.start_interaction('blue', extracting=player.has_blue)
         return True
