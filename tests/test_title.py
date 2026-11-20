@@ -10,7 +10,7 @@ from code.title import TitleScreen
 
 class TitleTests(unittest.TestCase):
     def setUp(self):
-        with patch('pico2d.load_image', return_value=Mock(h=887)):
+        with patch('pico2d.load_image', side_effect=lambda path: Mock(h=887)):
             self.title = TitleScreen()
 
     def point(self, name, event_type=pico2d.SDL_MOUSEBUTTONDOWN,
@@ -54,6 +54,20 @@ class TitleTests(unittest.TestCase):
              patch.object(main, 'TitleScreen'), patch.object(main, 'Level') as level:
             main.main()
         level.assert_not_called()
+
+    def test_gif_plays_all_frames_across_atlases_then_loops(self):
+        metadata = self.title.animation
+        for frame, duration in enumerate(metadata['durations']):
+            self.assertEqual(self.title.frame, frame)
+            self.title.draw()
+            atlas, local = divmod(frame, metadata['per_sheet'])
+            row, column = divmod(local, metadata['columns'])
+            args = self.title.backgrounds[atlas].clip_draw.call_args.args
+            self.assertEqual(args[:4], (column * metadata['width'],
+                             887 - (row + 1) * metadata['height'],
+                             metadata['width'], metadata['height']))
+            self.title.update(duration)
+        self.assertEqual(self.title.frame, 0)
 
 
 if __name__ == '__main__':

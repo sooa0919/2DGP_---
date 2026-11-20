@@ -83,6 +83,8 @@ def main():
                     player.handle_event(event)
             if not running:
                 break
+            if title is not None:
+                title.update(dt)
             if loading is not None:
                 if loading.needs_level:
                     level = Level()

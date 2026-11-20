@@ -1,5 +1,9 @@
 """Title menus using the two rows of the supplied button sprite sheet."""
 
+from bisect import bisect_right
+from itertools import accumulate
+import json
+
 import pico2d
 
 from .settings import IMAGE_ROOT, SCREEN_HEIGHT, SCREEN_WIDTH
@@ -21,10 +25,21 @@ class TitleScreen:
     FRAME_HEIGHT = 175
 
     def __init__(self):
-        self.background = pico2d.load_image(str(IMAGE_ROOT / 'ui/title.png'))
+        ui = IMAGE_ROOT / 'ui'
+        self.animation = json.loads((ui / 'title_frames.json').read_text(encoding='utf-8'))
+        self.backgrounds = [pico2d.load_image(str(ui / path)) for path in self.animation['paths']]
+        self.frame_ends = [round(end, 9) for end in accumulate(self.animation['durations'])]
+        self.time = 0.0
         self.sheet = pico2d.load_image(str(IMAGE_ROOT / 'ui/title_select.webp'))
         self.menu = 'main'
         self.mouse = None
+
+    @property
+    def frame(self):
+        return bisect_right(self.frame_ends, round(self.time, 9)) % len(self.frame_ends)
+
+    def update(self, dt):
+        self.time = (self.time + dt) % self.frame_ends[-1]
 
     @property
     def buttons(self):
@@ -66,7 +81,12 @@ class TitleScreen:
         return None
 
     def draw(self):
-        self.background.draw(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
+        atlas, local = divmod(self.frame, self.animation['per_sheet'])
+        row, column = divmod(local, self.animation['columns'])
+        width, height = self.animation['width'], self.animation['height']
+        background = self.backgrounds[atlas]
+        background.clip_draw(column * width, background.h - (row + 1) * height,
+                             width, height, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
                              SCREEN_WIDTH, SCREEN_HEIGHT)
         hovered = self.hovered
         for name in self.buttons:
