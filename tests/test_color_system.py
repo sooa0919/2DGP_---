@@ -127,6 +127,7 @@ class BlueColorTests(unittest.TestCase):
             return [SimpleNamespace(type=pico2d.SDL_QUIT)]
 
         with patch.object(game, "Level", return_value=self.level), \
+             patch.object(game, "LoadingScreen", return_value=Mock(needs_level=True, phase='done', done=True)), \
              patch.object(game, "TitleScreen", return_value=Mock(handle_event=Mock(return_value='new'))), \
              patch.object(game, "Player", return_value=self.player), \
              patch.object(game, "Background", return_value=Mock()), \

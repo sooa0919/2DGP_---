@@ -13,6 +13,7 @@ from code.tutorial import Tutorial
 from code.color_system import ColorSystem
 from code.settings import SCREEN_HEIGHT, SCREEN_WIDTH
 from code.title import TitleScreen
+from code.loading import LoadingScreen
 
 
 def main():
@@ -20,6 +21,7 @@ def main():
     try:
         configure_fullscreen()
         title = TitleScreen()
+        loading = None
         previous = perf_counter()
         running = True
         while running:
@@ -30,24 +32,15 @@ def main():
                 if event.type == pico2d.SDL_QUIT:
                     running = False
                     break
+                elif loading is not None:
+                    continue
                 elif title is not None:
                     action = title.handle_event(event)
                     if action == 'quit':
                         running = False
                         break
                     if action == 'new':
-                        level = Level()
-                        background = Background(level)
-                        player = Player(level)
-                        player.enter_level(level)
-                        camera = Camera(SCREEN_WIDTH, level.width,
-                                        getattr(level, 'height', SCREEN_HEIGHT))
-                        colors = ColorSystem()
-                        tutorial = Tutorial() if getattr(level, 'is_tutorial', False) else None
-                        title = None
-                        previous = perf_counter()
-                        dt = 0.0
-                        # Do not pass the menu click or remaining title inputs to play.
+                        loading = LoadingScreen()
                         break
                 else:
                     if tutorial:
@@ -58,16 +51,39 @@ def main():
                     player.handle_event(event)
             if not running:
                 break
+            if loading is not None:
+                if loading.needs_level:
+                    level = Level()
+                    background = Background(level)
+                    player = Player(level)
+                    player.enter_level(level)
+                    camera = Camera(SCREEN_WIDTH, level.width,
+                                    getattr(level, 'height', SCREEN_HEIGHT))
+                    colors = ColorSystem()
+                    tutorial = Tutorial() if getattr(level, 'is_tutorial', False) else None
+                    title = None
+                    loading.ready = True
+                    previous = perf_counter()
+                    dt = 0.0
+                loading.update(dt)
+                if loading.phase in ('out', 'loading'):
+                    clear_canvas()
+                    if loading.phase == 'out':
+                        title.draw()
+                    loading.draw()
+                    pico2d.update_canvas()
+                    pico2d.delay(0.001)
+                    continue
             if title is not None:
                 clear_canvas()
                 title.draw()
                 pico2d.update_canvas()
                 pico2d.delay(0.001)
                 continue
-            if not tutorial or not tutorial.paused:
+            if loading is None and (not tutorial or not tutorial.paused):
                 player.update(dt)
                 background.update(dt)
-            if tutorial:
+            if tutorial and loading is None:
                 tutorial.update(dt, level, player, colors)
             camera.follow(player.x, player.y)
             clear_canvas()
@@ -76,6 +92,10 @@ def main():
             background.draw_overlay(camera.x, player, camera.y)
             if tutorial:
                 tutorial.draw(level, player, colors, camera.x, camera.y)
+            if loading is not None:
+                loading.draw()
+                if loading.done:
+                    loading = None
             pico2d.update_canvas()
             pico2d.delay(0.001)
     finally:
