@@ -116,6 +116,8 @@ class BlueColorTests(unittest.TestCase):
             nonlocal frame
             frame += 1
             if frame == 1:
+                return [SimpleNamespace(type=pico2d.SDL_MOUSEBUTTONDOWN)]
+            if frame == 2:
                 self.player.x = self.pool.left + 80
                 self.player.y = self.pool.top + Player.DRAW_SIZE / 2
                 return [SimpleNamespace(type=pico2d.SDL_MOUSEBUTTONDOWN,
@@ -125,6 +127,7 @@ class BlueColorTests(unittest.TestCase):
             return [SimpleNamespace(type=pico2d.SDL_QUIT)]
 
         with patch.object(game, "Level", return_value=self.level), \
+             patch.object(game, "TitleScreen", return_value=Mock(handle_event=Mock(return_value='new'))), \
              patch.object(game, "Player", return_value=self.player), \
              patch.object(game, "Background", return_value=Mock()), \
              patch.object(game, "Camera", return_value=SimpleNamespace(x=1900, y=0, follow=lambda x, y: None)), \

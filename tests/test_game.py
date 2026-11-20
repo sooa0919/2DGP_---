@@ -228,9 +228,11 @@ class PlatformerTests(unittest.TestCase):
     def test_tutorial_ignores_e_and_updates_water_animation(self):
         import main as game
         scene = Mock()
-        events = iter([[SimpleNamespace(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_e)],
+        events = iter([[SimpleNamespace(type=pico2d.SDL_MOUSEBUTTONDOWN)],
+                       [SimpleNamespace(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_e)],
                        [SimpleNamespace(type=pico2d.SDL_QUIT)]])
         with patch.object(game, "Background", return_value=scene) as factory, \
+             patch.object(game, "TitleScreen", return_value=Mock(handle_event=Mock(return_value='new'))), \
              patch.object(game, "Tutorial", return_value=Mock(paused=False)), \
              patch.object(game, "Player", return_value=self.player), \
              patch.object(game, "configure_fullscreen"), \
@@ -241,7 +243,7 @@ class PlatformerTests(unittest.TestCase):
                             delay=lambda t: None):
             game.main()
         self.assertEqual(factory.call_count, 1)
-        scene.update.assert_called_once()
+        self.assertEqual(scene.update.call_count, 2)
 
     def test_connected_soil_uses_plain_tile_and_exposed_walls_keep_edges(self):
         level = Level()
