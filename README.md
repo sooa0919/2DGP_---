@@ -5,7 +5,7 @@
 
 실행하면 새 `image/ui/title.png`를 사용하는 타이틀 화면이 먼저 표시됩니다. 제목 아래 왼쪽에 게임 시작, 설정, 종료 버튼을 세로로 배치했습니다.
 타이틀 PNG는 별도 변환 없이 직접 읽으며 설정창 뒤와 로딩 페이드아웃 중에도 표시됩니다.
-버튼은 `title_button.png`의 중간 행을 기본으로 사용하고 마우스를 올리면 아래쪽의 금빛 밑줄 이미지로 바뀝니다.
+버튼은 `title_button.png`를 원본의 50% 크기로 표시합니다. 중간 행을 기본으로 사용하고 마우스를 올리면 아래쪽의 금빛 밑줄 이미지로 바뀝니다.
 게임 시작을 누르면 같은 위치에 새 게임, 불러오기가 표시되며 새 게임을 누르면 사원 튜토리얼이 시작됩니다.
 하위 메뉴에서 ESC를 누르면 메인 메뉴로 돌아갑니다. 종료 버튼은 게임을 닫습니다.
 설정 버튼은 CHROMA_UI 키트로 구성한 설정창을 엽니다. 왼쪽의 게임·화면·음향·조작 탭을 선택해 항목을 볼 수 있습니다.
@@ -15,9 +15,9 @@ ESC 또는 돌아가기 버튼으로 설정창을 닫습니다. 플레이 중 ES
 타이틀 화면에서 연 설정창에는 게임 종료와 돌아가기만 표시하며, 저장과 타이틀로는 플레이 중 설정창에만 표시합니다.
 불러오기는 현재 버튼 표시와 마우스 반응만 준비되어 있습니다.
 
-새 게임을 누르면 타이틀이 0.6초 동안 검게 페이드아웃됩니다. 검정 화면 중앙에서 loading.gif의 12프레임 애니메이션을 재생하고, 아래에 `l`부터 `loading..`까지 타자 효과를 2번 반복합니다(약 2.9초).
+새 게임을 누르면 타이틀이 0.6초 동안 검게 페이드아웃됩니다. 검정 화면 중앙에서 새 `loading.webp`의 세 색 빛이 회전하는 12프레임 애니메이션을 160×160 크기로 재생하고, 아래에 `l`부터 `loading..`까지 타자 효과를 2번 반복합니다(약 2.9초).
 이후 플레이 화면이 0.8초 동안 페이드인되며 조작이 시작됩니다. 전환 중에는 게임 진행과 플레이 입력을 멈추고 창 닫기는 계속 처리합니다.
-GIF는 pico2d용 loading_frames.png와 프레임 시간 정보로 변환해 사용합니다. 원본을 바꾸면 `python tools/prepare_loading.py`로 다시 생성합니다(Pillow 필요).
+WebP의 가로 프레임을 분리하고 위아래 빈 여백을 제외해 pico2d용 `loading_frames.png`와 프레임 시간 정보로 변환합니다. 원본을 바꾸면 `python tools/prepare_loading.py`로 다시 생성합니다(Pillow 필요).
 
 현재 실행 화면은 11월 18일 수정한 프리뷰에 맞춘 흑백 타일 맵입니다.
 배치를 16픽셀 격자에 맞추고 첫 번째 파랑 기믹을 연결했습니다.
@@ -27,9 +27,8 @@ GIF는 pico2d용 loading_frames.png와 프레임 시간 정보로 변환해 사�
 색 추출·회수에는 interaction/mouse_색.webp의 위 두 줄(8프레임), 부여에는 아래 두 줄(8프레임)을 초당 10프레임으로 한 번 재생합니다.
 상호작용 동작은 캐릭터가 현재 바라보는 방향에 맞춰 좌우 반전됩니다.
 상호작용 중에는 좌우 이동·점프·발판 내려가기를 막고 바라보는 방향을 유지합니다. 중력과 충돌은 계속 적용되며, 동작이 끝나면 누르고 있는 방향키로 다시 이동합니다. 점프·내려가기는 다시 눌러야 합니다.
-추출·회수 중에는 Part 1/16.png의 14프레임 회전 이펙트가 캐릭터 뒤에 같은 색으로 나타납니다. 동작이 끝나면 현재 색과 이동 상태의 기본 애니메이션으로 돌아갑니다.
+추출·회수 중 별도의 회전 이펙트는 표시하지 않습니다. 캐릭터 동작이 끝나면 현재 색과 이동 상태의 기본 애니메이션으로 돌아갑니다.
 현재 맵의 파랑 다이아몬드와 물 상호작용에 연결했습니다. 초록·노랑도 `player.start_interaction('green' 또는 'yellow', extracting=True/False)`로 같은 동작을 사용할 수 있습니다. 초록·노랑 기믹은 아직 맵에 배치되어 있지 않습니다.
-회전 이펙트의 파랑·초록은 원본 색상 행을 사용하며, 노랑은 원본 회색 행을 금빛으로 변환해 사용합니다. `python tools/prepare_interaction.py`로 이펙트 시트를 다시 생성할 수 있습니다(Pillow 필요).
 시작 지점 오른쪽 바닥 구멍에는 폭포와 얕은 물웅덩이가 연결되어 있습니다.
 물에 파랑을 주면 액체로 바뀌어 통과할 수 있고 회수하면 회색 고체로 굳습니다.
 R 또는 낙사 후에는 캐릭터를 회색, 다이아몬드를 파랑, 물을 회색 고체로 되돌립니다.
@@ -76,6 +75,7 @@ Animated Water Tiles 시트의 폭포 프레임과 아래 방향 텍스처 이�
 - 테스트: python -m unittest discover -s tests
 - 상호작용 미리보기: python tools/preview_interaction.py → previews/interaction_blue.gif, interaction_colors.gif
 - 설정창 미리보기: python tools/preview_settings.py → previews/settings_title_0~3.png, settings_play.png
+- 로딩 미리보기: python tools/preview_loading.py → previews/loading.png, loading.gif
 - 튜토리얼 화면 생성: python tools/preview_tutorial.py (Pillow 필요)
 - 현재 생성 결과는 previews/tutorial_start.png와 tutorial_overview.png입니다. 나머지 색 기믹 프리뷰는 이전 구현 기록입니다.
 - 첫 파랑 기믹의 현재 프리뷰는 tutorial_diamond_extract.png, tutorial_water.png와 tutorial_diamond_waterfall.gif입니다.
