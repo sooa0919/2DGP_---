@@ -27,23 +27,23 @@ def main():
         for tab in range(4):
             renderer.canvas = Image.new('RGB', (1152, 648))
             title.draw()
-            settings.panel_open = tab != 0
-            settings.tab = 1 if tab == 3 else 0
+            settings.tab = tab % 2
             settings.draw()
             renderer.canvas.save(ROOT / f'previews/settings_title_{tab}.png')
         settings.panel_open = True
         settings.tab = 0
         settings.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONDOWN,
-                                    button=1, x=714, y=648-370))
+                                    button=1, x=714 + settings.panel_offset, y=648-370))
         frames = []
         for value in list(range(0, 101, 5)) + list(range(95, -1, -5)):
-            x = settings.SLIDER_LEFT + (settings.SLIDER_RIGHT-settings.SLIDER_LEFT) * value/100
+            x = settings.SLIDER_LEFT + settings.panel_offset + (settings.SLIDER_RIGHT-settings.SLIDER_LEFT) * value/100
             settings.handle_event(Event(type=pico2d.SDL_MOUSEMOTION, x=x, y=648-370))
             renderer.canvas = Image.new('RGB', (1152, 648))
             title.draw()
             settings.draw()
             frames.append(renderer.canvas.copy())
-        settings.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONUP, button=1, x=714, y=648-370))
+        settings.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONUP, button=1,
+                                    x=714 + settings.panel_offset, y=648-370))
         frames[0].save(ROOT / 'previews/settings_slider.gif', save_all=True,
                        append_images=frames[1:], duration=70, loop=0)
         level = TutorialLevel()
@@ -57,6 +57,14 @@ def main():
         settings.open(in_game=True)
         settings.draw()
         renderer.canvas.save(ROOT / 'previews/settings_play.png')
+        renderer.canvas = Image.new('RGB', (1152, 648))
+        background.draw(0, 0)
+        player.draw(0)
+        background.draw_overlay(0, player, 0)
+        settings.panel_open = True
+        settings.volumes.update(bgm=80, sfx=80)
+        settings.draw()
+        renderer.canvas.save(ROOT / 'previews/settings_play_panel.png')
 
 
 if __name__ == '__main__':
