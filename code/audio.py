@@ -6,7 +6,7 @@ from .settings import ROOT
 
 class MusicManager:
     GAINS = {'title': 1.0, 'tutorial': 0.25}
-    CLICK_PATH = ROOT / 'sound/sound/ui_sound/UI_Click_Bubble_Pop_V01.wav'
+    CLICK_PATH = ROOT / 'sound/sound/ui_sound/UI_Click_Plush_Switch_V01.wav'
     TRACKS = {
         'title': ROOT / 'sound/sound/title_bgm/placidplace-fantasy-lucid-forestpart-two-49992.mp3',
         'tutorial': ROOT / 'sound/sound/bgm/stage_1.mp3',
