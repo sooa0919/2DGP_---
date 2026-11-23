@@ -1,7 +1,7 @@
 """Modal settings preview assembled from the supplied CHROMA UI kit."""
 import pico2d
 
-from .settings import IMAGE_ROOT, ROOT, SCREEN_HEIGHT, SCREEN_WIDTH
+from .settings import FONT_PATH, FONT_BOLD_PATH, IMAGE_ROOT, SCREEN_HEIGHT, SCREEN_WIDTH
 
 
 class SettingsMenu:
@@ -25,10 +25,10 @@ class SettingsMenu:
                      for name in self.TABS]
         self.shade = pico2d.load_image(str(IMAGE_ROOT / 'ui/fade_black.png'))
         self.actions = pico2d.load_image(str(folder / '저장_게임종료_타이틀로_.webp'))
-        font = str(ROOT / 'fonts/Galmuri-v2.40.4/Galmuri11.ttf')
+        font = str(FONT_PATH)
         self.font = pico2d.load_font(font, 22)
         self.small = pico2d.load_font(font, 16)
-        self.heading = pico2d.load_font(font, 28)
+        self.heading = pico2d.load_font(str(FONT_BOLD_PATH), 28)
         self.tab = 0
         self.mouse = None
         self.in_game = False

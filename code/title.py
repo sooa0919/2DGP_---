@@ -1,8 +1,4 @@
-"""Title menus using the two rows of the supplied button sprite sheet."""
-
-from bisect import bisect_right
-from itertools import accumulate
-import json
+"""Title menus using the supplied title artwork and normal/hover buttons."""
 
 import pico2d
 
@@ -12,34 +8,30 @@ from .settings import IMAGE_ROOT, SCREEN_HEIGHT, SCREEN_WIDTH
 class TitleScreen:
     # Source rectangles use top-left coordinates. Each column has two states.
     COLUMNS = {
-        'start': (45, 440),
-        'settings': (455, 730),
-        'quit': (740, 1025),
-        'new': (1035, 1380),
-        'load': (1385, 1740),
+        'start': (95, 525),
+        'settings': (565, 870),
+        'quit': (910, 1230),
+        'new': (1265, 1650),
+        'load': (1670, 2100),
     }
     SCALE = 0.6
     LEFT = 82
     FIRST_Y = 370
     SPACING = 110
-    FRAME_HEIGHT = 175
+    FRAME_HEIGHT = 170
+    NORMAL_TOP = 210
+    NORMAL_HEIGHT = 120
+    HOVER_TOP = 330
 
     def __init__(self):
         ui = IMAGE_ROOT / 'ui'
-        self.animation = json.loads((ui / 'title_frames.json').read_text(encoding='utf-8'))
-        self.backgrounds = [pico2d.load_image(str(ui / path)) for path in self.animation['paths']]
-        self.frame_ends = [round(end, 9) for end in accumulate(self.animation['durations'])]
-        self.time = 0.0
-        self.sheet = pico2d.load_image(str(IMAGE_ROOT / 'ui/title_select.webp'))
+        self.background = pico2d.load_image(str(ui / 'title.png'))
+        self.sheet = pico2d.load_image(str(ui / 'title_button.png'))
         self.menu = 'main'
         self.mouse = None
 
-    @property
-    def frame(self):
-        return bisect_right(self.frame_ends, round(self.time, 9)) % len(self.frame_ends)
-
     def update(self, dt):
-        self.time = (self.time + dt) % self.frame_ends[-1]
+        pass
 
     @property
     def buttons(self):
@@ -81,18 +73,14 @@ class TitleScreen:
         return None
 
     def draw(self):
-        atlas, local = divmod(self.frame, self.animation['per_sheet'])
-        row, column = divmod(local, self.animation['columns'])
-        width, height = self.animation['width'], self.animation['height']
-        background = self.backgrounds[atlas]
-        background.clip_draw(column * width, background.h - (row + 1) * height,
-                             width, height, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-                             SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.background.draw(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT)
         hovered = self.hovered
         for name in self.buttons:
             left, right = self.COLUMNS[name]
-            source_top = 437 if name == hovered else 230
+            source_top = self.HOVER_TOP if name == hovered else self.NORMAL_TOP
+            source_height = self.FRAME_HEIGHT if name == hovered else self.NORMAL_HEIGHT
             x1, y1, x2, y2 = self.bounds(name)
-            self.sheet.clip_draw(left, self.sheet.h - source_top - self.FRAME_HEIGHT,
-                                 right - left, self.FRAME_HEIGHT,
-                                 (x1 + x2) / 2, (y1 + y2) / 2, x2 - x1, y2 - y1)
+            height = source_height * self.SCALE
+            self.sheet.clip_draw(left, self.sheet.h - source_top - source_height,
+                                 right - left, source_height,
+                                 (x1 + x2) / 2, y2 - height / 2, x2 - x1, height)

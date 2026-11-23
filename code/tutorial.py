@@ -1,7 +1,7 @@
 """Input-driven Korean lessons and contextual interaction hints."""
 import math
 import pico2d
-from .settings import ROOT, IMAGE_ROOT, SCREEN_WIDTH, SCREEN_HEIGHT
+from .settings import FONT_PATH, IMAGE_ROOT, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 ABILITY_TEXT = {
@@ -21,7 +21,7 @@ class Tutorial:
         self.mouse = pico2d.load_image(str(ui / 'mouse.png'))
         self.cursor = pico2d.load_image(str(ui / 'cursors.png'))
         self.panel_bg = pico2d.load_image(str(IMAGE_ROOT / 'ui/tutorial_panel.png'))
-        font = ROOT / 'fonts/Galmuri-v2.40.4/Galmuri11.ttf'
+        font = FONT_PATH
         self.font = pico2d.load_font(str(font), 22)
         self.small = pico2d.load_font(str(font), 16)
         self.reset()

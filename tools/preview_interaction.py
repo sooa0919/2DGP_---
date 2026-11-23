@@ -10,7 +10,7 @@ import tools.preview_levels as renderer
 from tools.preview_tutorial import rectangle
 from code.color_system import ColorSystem
 from code.player import Player
-from code.settings import ROOT
+from code.settings import ROOT, FONT_PATH
 from code.temple import TempleBackground
 from code.tutorial_level import TutorialLevel
 
@@ -49,7 +49,7 @@ def main():
         frames[0].save(output / 'interaction_blue.gif', save_all=True,
                        append_images=frames[1:], duration=100, loop=0)
 
-        font = ImageFont.truetype(str(ROOT / 'fonts/Galmuri-v2.40.4/Galmuri11.ttf'), 20)
+        font = ImageFont.truetype(str(FONT_PATH), 20)
         previews = []
         for extracting in (True, False):
             sequence = []

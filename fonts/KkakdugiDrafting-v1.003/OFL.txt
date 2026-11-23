@@ -1,6 +1,6 @@
-Copyright (c) 2019–2025 Lee Minseo (quiple@quiple.dev)
+Copyright 2026 The Kkakdugi Drafting Project Authors (https://github.com/dynamic-potato/kkakdugi-drafting), with Reserved Font Names "Kkakdugi Drafting" and "깍두기 도면체".
 
-This font software is licensed under the SIL Open Font License, Version 1.1.
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
 https://openfontlicense.org
 

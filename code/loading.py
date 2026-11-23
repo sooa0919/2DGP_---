@@ -3,7 +3,7 @@ import json
 
 import pico2d
 
-from .settings import IMAGE_ROOT, ROOT, SCREEN_HEIGHT, SCREEN_WIDTH
+from .settings import FONT_PATH, IMAGE_ROOT, SCREEN_HEIGHT, SCREEN_WIDTH
 
 
 class LoadingScreen:
@@ -20,7 +20,7 @@ class LoadingScreen:
         self.sheet = pico2d.load_image(str(ui / 'loading_frames.png'))
         self.black = pico2d.load_image(str(ui / 'fade_black.png'))
         self.frames = json.loads((ui / 'loading_frames.json').read_text(encoding='utf-8'))
-        self.font = pico2d.load_font(str(ROOT / 'fonts/Galmuri-v2.40.4/Galmuri11.ttf'), 24)
+        self.font = pico2d.load_font(str(FONT_PATH), 24)
         self.phase = 'out'
         self.time = 0.0
         self.ready = False

@@ -10,7 +10,7 @@ from code.title import TitleScreen
 
 class TitleTests(unittest.TestCase):
     def setUp(self):
-        with patch('pico2d.load_image', side_effect=lambda path: Mock(h=887)):
+        with patch('pico2d.load_image', side_effect=lambda path: Mock(h=529)):
             self.title = TitleScreen()
 
     def point(self, name, event_type=pico2d.SDL_MOUSEBUTTONDOWN,
@@ -32,8 +32,8 @@ class TitleTests(unittest.TestCase):
         self.assertEqual(self.title.hovered, 'settings')
         self.title.draw()
         calls = self.title.sheet.clip_draw.call_args_list
-        self.assertEqual(calls[0].args[1], 887 - 230 - 175)
-        self.assertEqual(calls[1].args[1], 887 - 437 - 175)
+        self.assertEqual(calls[0].args[1], 529 - 210 - 120)
+        self.assertEqual(calls[1].args[1], 529 - 330 - 170)
         self.title.handle_event(Event(type=pico2d.SDL_MOUSEMOTION, x=-1, y=-1))
         self.assertIsNone(self.title.hovered)
 
@@ -55,19 +55,16 @@ class TitleTests(unittest.TestCase):
             main.main()
         level.assert_not_called()
 
-    def test_gif_plays_all_frames_across_atlases_then_loops(self):
-        metadata = self.title.animation
-        for frame, duration in enumerate(metadata['durations']):
-            self.assertEqual(self.title.frame, frame)
-            self.title.draw()
-            atlas, local = divmod(frame, metadata['per_sheet'])
-            row, column = divmod(local, metadata['columns'])
-            args = self.title.backgrounds[atlas].clip_draw.call_args.args
-            self.assertEqual(args[:4], (column * metadata['width'],
-                             887 - (row + 1) * metadata['height'],
-                             metadata['width'], metadata['height']))
-            self.title.update(duration)
-        self.assertEqual(self.title.frame, 0)
+    def test_new_png_background_and_buttons_are_loaded_directly(self):
+        from code.settings import IMAGE_ROOT, SCREEN_WIDTH
+        with patch('pico2d.load_image', return_value=Mock(h=529)) as load:
+            title = TitleScreen()
+        self.assertEqual([c.args[0] for c in load.call_args_list],
+                         [str(IMAGE_ROOT / 'ui/title.png'), str(IMAGE_ROOT / 'ui/title_button.png')])
+        title.update(10)
+        title.draw()
+        title.background.draw.assert_called_with(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
+                                                  SCREEN_WIDTH, SCREEN_HEIGHT)
 
 
 if __name__ == '__main__':
