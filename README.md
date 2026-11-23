@@ -26,6 +26,15 @@
 머리 위에 A/D → SPACE 안내가 표시되고, 얇은 발판 위에서는 S 안내가 표시됩니다.
 이동·점프·내려가기를 실제로 수행하면 해당 안내가 사라집니다.
 
+## 설정 화면
+
+새 `image/ui/ui.png`의 채색된 메뉴판·돌기둥 프레임·파란 버튼으로 설정 화면을 구성합니다.
+왼쪽에서 설정 종류를 고르고, 오른쪽에서 내용과 조작 안내를 확인합니다.
+음향 설정의 배경음악·효과음 슬라이더는 클릭하거나 드래그하여 각각 0~100%로 조절합니다.
+창을 닫았다 열어도 실행 중 음량 값이 유지되며, 원형 화살표 버튼으로 80%로 초기화합니다.
+현재는 슬라이더와 음량 값까지 구현되어 있고 실제 음악·효과음 재생은 연결하지 않았습니다.
+돌아가기 버튼이나 ESC로 게임을 계속할 수 있습니다.
+
 ## 진행 순서
 
 1. 앞의 파랑 보석을 좌클릭해 파랑을 추출합니다.
@@ -57,6 +66,9 @@
 - 전체 배치: `previews/tutorial_overview.png`
 - 구간별 화면: `tutorial_start.png`, `tutorial_water.png`, `tutorial_green.png`, `tutorial_frozen_water.png`, `tutorial_yellow.png`, `tutorial_exit.png`
 - 낙수의 이동·정지·재개: `previews/tutorial_falling_water.gif`
+- 설정 화면: `python tools/preview_settings.py`
+- 음량 슬라이더 동작: `previews/settings_slider.gif`
+- UI 시트 변경 후 에셋 추출: `python tools/prepare_ui.py`
 
 전체 이동·색 교환·점프 물리를 사용해 시작부터 출구까지 통과하는 테스트를 포함합니다.
 타이틀은 `image/ui/title.png`, 버튼은 `title_button.png`, 로딩은 `loading.webp`를 사용합니다.
