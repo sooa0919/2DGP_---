@@ -3,6 +3,7 @@ import pico2d
 
 from .settings import FONT_PATH, IMAGE_ROOT, SCREEN_WIDTH, SCREEN_HEIGHT
 from .diamond import DiamondRenderer
+from .leaves import ForestLeaves
 
 
 COLORS = {'blue': (48, 164, 231), 'green': (68, 190, 104), 'yellow': (249, 211, 80)}
@@ -14,12 +15,14 @@ class ForestBlockout:
         folder = IMAGE_ROOT / 'background/grayscale/background3_jungle2'
         self.layers = [pico2d.load_image(str(folder / f'plx-{i}.png')) for i in range(1, 6)]
         self.diamonds = DiamondRenderer()
+        self.leaves = ForestLeaves()
         self.font = pico2d.load_font(str(FONT_PATH), 16)
         self.time = 0.0
         self.scroll_rates = (0, .12, .24, .4, .6)
 
     def update(self, dt):
         self.time += dt
+        self.leaves.update(dt)
 
     def box(self, item, camera_x, camera_y, color, filled=True, alpha=255):
         left, right = item.left - camera_x, item.right - camera_x
@@ -36,6 +39,7 @@ class ForestBlockout:
             offset = round(camera_x * rate) % width
             for start in (-offset, width - offset):
                 layer.draw(start + width / 2, height / 2 - camera_y, width, height)
+        self.leaves.draw(camera_x, camera_y)
         for p in self.level.platforms:
             self.box(p, camera_x, camera_y, (32, 35, 38))
             self.box(p, camera_x, camera_y, (178, 182, 184), False)
