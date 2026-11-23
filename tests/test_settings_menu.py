@@ -21,46 +21,57 @@ class SettingsMenuTests(unittest.TestCase):
         left, bottom, right, top = bounds
         return self.click((left + right) / 2, (bottom + top) / 2, button)
 
-    def test_tabs_and_close_use_logical_mouse_coordinates(self):
-        for index, y in enumerate(self.menu.TAB_Y):
-            self.click(300, y)
+    def show_settings(self):
+        self.click_bounds(self.menu.ACTION_BOUNDS['settings'])
+
+    def test_settings_opens_panel_and_back_returns_to_menu_before_escape_closes(self):
+        self.assertFalse(self.menu.panel_open)
+        self.show_settings()
+        self.assertTrue(self.menu.panel_open)
+        for index, bounds in enumerate(self.menu.TAB_BOUNDS):
+            self.click_bounds(bounds)
             self.assertEqual(self.menu.tab, index)
-        self.click(300, self.menu.TAB_Y[0], pico2d.SDL_BUTTON_RIGHT)
-        self.assertEqual(self.menu.tab, 3)
+        self.click_bounds(self.menu.TAB_BOUNDS[0], pico2d.SDL_BUTTON_RIGHT)
+        self.assertEqual(self.menu.tab, 1)
         self.assertIsNone(self.click(10, 10))
-        self.assertEqual(self.click_bounds(self.menu.CLOSE_BOUNDS), 'close')
+        self.assertIsNone(self.click_bounds(self.menu.CLOSE_BOUNDS))
+        self.assertFalse(self.menu.panel_open)
         self.assertEqual(self.menu.handle_event(Event(type=pico2d.SDL_KEYDOWN,
                                                       key=pico2d.SDLK_ESCAPE)), 'close')
 
     def test_settings_pages_draw_and_reopening_retains_volume(self):
-        self.menu.tab = 2
+        self.show_settings()
+        self.menu.tab = 0
         self.assertIsNone(self.click(866, 370))
         self.assertEqual(self.menu.volumes['bgm'], 50)
-        self.assertEqual(self.menu.tab, 2)
+        self.assertEqual(self.menu.tab, 0)
         self.assertIsNone(self.click(280, 85))
         self.menu.open()
         self.assertIsNone(self.menu.mouse)
         self.assertIsNone(self.menu.dragging)
+        self.assertFalse(self.menu.panel_open)
         self.assertEqual(self.menu.volumes['bgm'], 50)
         with patch('pico2d.draw_rectangle'):
-            for self.menu.tab in range(4):
+            self.menu.panel_open = True
+            for self.menu.tab in range(2):
                 self.menu.draw()
 
     def test_title_and_quit_buttons_return_actions_only_on_left_click(self):
         self.menu.open(in_game=False)
-        self.assertEqual(tuple(self.menu.action_bounds), ('quit',))
+        self.assertEqual(tuple(self.menu.action_bounds), ('settings', 'quit'))
         self.assertIsNone(self.click(480, 85))
         self.assertIsNone(self.click(280, 85))
         self.assertEqual(self.click_bounds(self.menu.ACTION_BOUNDS['quit']), 'quit')
         self.menu.open(in_game=True)
-        self.assertEqual(tuple(self.menu.action_bounds), ('save', 'title', 'quit'))
+        self.assertEqual(tuple(self.menu.action_bounds), ('settings', 'save', 'title', 'quit'))
         self.assertEqual(self.click_bounds(self.menu.ACTION_BOUNDS['title']), 'title')
         self.assertEqual(self.click_bounds(self.menu.ACTION_BOUNDS['quit']), 'quit')
         self.assertIsNone(self.click_bounds(self.menu.ACTION_BOUNDS['title'], pico2d.SDL_BUTTON_RIGHT))
         self.assertIsNone(self.click_bounds(self.menu.ACTION_BOUNDS['quit'], pico2d.SDL_BUTTON_RIGHT))
 
     def test_slider_drag_clamps_releases_and_keeps_channels_independent(self):
-        self.menu.tab = 2
+        self.show_settings()
+        self.menu.tab = 0
         self.click(714, 370)
         self.assertEqual(self.menu.volumes, {'bgm': 0, 'sfx': 80})
         self.menu.handle_event(Event(type=pico2d.SDL_MOUSEMOTION, x=1400, y=10))
@@ -81,13 +92,27 @@ class SettingsMenuTests(unittest.TestCase):
     def test_slider_ignores_other_tabs_and_right_click_and_escape_cancels_drag(self):
         self.click(714, 370)
         self.assertEqual(self.menu.volumes['bgm'], 80)
-        self.menu.tab = 2
+        self.show_settings()
+        self.menu.tab = 0
         self.click(714, 370, pico2d.SDL_BUTTON_RIGHT)
         self.assertIsNone(self.menu.dragging)
         self.click(714, 370)
         self.assertEqual(self.menu.dragging, 'bgm')
         self.menu.handle_event(Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_ESCAPE))
         self.assertIsNone(self.menu.dragging)
+        self.assertFalse(self.menu.panel_open)
+
+    def test_hidden_panel_and_control_tab_cannot_change_sound_and_buttons_have_no_text(self):
+        self.click(714, 370)
+        self.assertEqual(self.menu.volumes['bgm'], 80)
+        self.show_settings()
+        self.click_bounds(self.menu.TAB_BOUNDS[1])
+        self.click(714, 370)
+        self.assertEqual(self.menu.volumes['bgm'], 80)
+        self.menu.small.reset_mock()
+        self.menu.panel_open = False
+        self.menu.draw()
+        self.menu.small.draw.assert_not_called()
 
     def test_return_to_title_allows_fresh_game_and_quit_closes_canvas(self):
         import main
