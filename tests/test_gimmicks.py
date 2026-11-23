@@ -118,25 +118,42 @@ class GimmickTests(unittest.TestCase):
         self.assertEqual(self.level.progress, 0)
         self.assertFalse(self.colors.interact_at(self.player.x, self.player.y, self.level, self.player))
 
-    def test_falling_from_the_vine_run_resets_the_whole_level(self):
-        self.level.progress = 4
-        self.level.vines[1].active = True
-        self.player.color = None
-        self.player.x, self.player.y = 2400, 224 + self.player.FOOT_OFFSET
-        self.level.update(0, self.player)
-        self.assertTrue(self.level.vine_attempt_started)
-        self.assertFalse(any(p.top == 224 and p.left <= 2400 < p.right for p in self.level.platforms))
-        self.level.vines[1].active = False
+    def test_falling_from_last_vine_keeps_position_color_and_progress(self):
+        self.level.progress = 6
+        self.level.water[0].has_blue = True
+        self.level.color_sources[0].has_blue = False
+        self.player.color = 'green'
+        self.player.x, self.player.y = 3000, 480 + self.player.FOOT_OFFSET
         self.player.grounded = False
-        for _ in range(120):
+        for _ in range(180):
             self.player.update(1 / 120)
             self.level.update(1 / 120, self.player)
-            if self.level.progress == 0:
-                break
-        self.assertEqual(self.level.progress, 0)
-        self.assertEqual(self.player.x, self.level.spawn[0])
+        self.assertEqual(self.level.progress, 6)
+        self.assertEqual(self.player.x, 3000)
+        self.assertEqual(self.player.bottom, 96)
+        self.assertEqual(self.player.color, 'green')
+        self.assertFalse(self.level.color_sources[0].has_blue)
+        self.assertTrue(self.level.water[0].has_blue)
+
+    def test_last_vine_can_be_activated_but_cannot_be_climbed_from_ground(self):
+        vine = self.level.vines[-1]
+        self.level.progress = 5
+        self.player.x, self.player.y = 3000, 96 + self.player.FOOT_OFFSET
+        self.player.grounded = True
+        self.player.color = 'green'
+        self.assertTrue(self.colors.interact_at(3000, 132, self.level, self.player))
+        self.assertTrue(vine.active)
+        self.assertEqual([p.top for p in vine.leaves()], [336, 416, 480])
         self.assertIsNone(self.player.color)
-        self.assertTrue(self.level.color_sources[0].has_blue)
+        self.player.handle_event(Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_SPACE))
+        highest = self.player.bottom
+        for _ in range(180):
+            self.player.update(1 / 120)
+            self.level.update(1 / 120, self.player)
+            highest = max(highest, self.player.bottom)
+        self.assertLess(highest, 336)
+        self.assertEqual(self.player.bottom, 96)
+        self.assertEqual(self.player.x, 3000)
 
     def test_transfer_does_not_interrupt_running_or_jumping(self):
         self.player.keys.add(pico2d.SDLK_d)

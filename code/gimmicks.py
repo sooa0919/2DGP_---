@@ -16,6 +16,7 @@ class Vine:
     animation_time: float = 0.0
     required_color: str = 'green'
     cap_right: float | None = None
+    min_leaf_top: float | None = None
 
     @property
     def right(self):
@@ -33,7 +34,8 @@ class Vine:
         heights = list(range(int(self.bottom) + 80, int(self.top), 80)) + [int(self.top)]
         return [Platform(self.left, y - 8,
                          self.cap_right if y == self.top and self.cap_right is not None else self.stem_right,
-                         y, one_way=True) for y in heights]
+                         y, one_way=True) for y in heights
+                if self.min_leaf_top is None or y >= self.min_leaf_top]
 
 
 @dataclass

@@ -34,6 +34,8 @@ class TutorialLevel(Level):
                       Vine(2944, 96, 3056, 480, 5, '덩굴 3')]
         for vine, right in zip(self.vines[1:], (2528, 2880, 3248)):
             vine.cap_right = right
+        # Enter this vine from the previous raised platform, never from the ground.
+        self.vines[-1].min_leaf_top = 336
         group = FallingWaterGroup()
         self.droplets = [FallingWater(3328, top - 80, 3552, top, top, group)
                          for top in (932, 712, 492, 272)]
@@ -62,7 +64,6 @@ class TutorialLevel(Level):
         self.progress = 0
         self.gate_opened = False
         self.complete = False
-        self.vine_attempt_started = False
 
     def update(self, dt, player):
         for source in self.color_sources:
@@ -86,11 +87,6 @@ class TutorialLevel(Level):
                 d.solid and d.left <= player.x <= d.right and player.grounded
                 and abs(player.bottom - d.top) < 1 for d in self.droplets):
             self.progress = 7
-        if 3 <= self.progress <= 6 and 2200 <= player.x < 3616:
-            self.vine_attempt_started |= player.bottom > 144
-            if self.vine_attempt_started and player.grounded and player.bottom <= 97:
-                player.enter_level(self)
-                return
         self.complete = self.complete or self.at_end(player)
 
     def at_end(self, player):
