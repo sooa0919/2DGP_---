@@ -1,4 +1,4 @@
-"""Modal settings preview assembled from the supplied CHROMA UI kit."""
+"""Settings modal using the supplied hand-drawn UI sheet."""
 import pico2d
 
 from .settings import FONT_PATH, FONT_BOLD_PATH, IMAGE_ROOT, SCREEN_HEIGHT, SCREEN_WIDTH
@@ -6,36 +6,35 @@ from .settings import FONT_PATH, FONT_BOLD_PATH, IMAGE_ROOT, SCREEN_HEIGHT, SCRE
 
 class SettingsMenu:
     TABS = ('게임 설정', '화면 설정', '음향 설정', '조작 설정')
-    TAB_Y = (456, 378, 300, 222)
-    CLOSE_BOUNDS = (775, 58, 940, 112)
-    ACTION_BOUNDS = {
-        'save': (205, 58, 370, 112),
-        'title': (395, 58, 560, 112),
-        'quit': (585, 58, 750, 112),
-    }
+    TAB_Y = (410, 330, 250, 170)
+    CLOSE_BOUNDS = (988, 72, 1032, 120)
+    RESET_BOUNDS = (928, 72, 972, 120)
+    ACTION_BOUNDS = {'save': (686, 142, 782, 184),
+                     'title': (790, 142, 886, 184),
+                     'quit': (894, 142, 990, 184)}
+    SLIDER_LEFT, SLIDER_RIGHT = 714, 1018
+    SLIDER_Y = {'bgm': 370, 'sfx': 270}
+    INK = (48, 65, 51)
 
     def __init__(self):
-        folder = IMAGE_ROOT / 'ui/CHROMA_UI'
-        names = ('01_숲유적_배경', '02_설정창_프레임', '03_제목_장식',
-                 'slider_기본', 'checkbox_체크', 'toggle_켜짐',
-                 'icon_소리', 'icon_모니터', 'icon_게임패드', 'icon_설정',
-                 'button_돌아가기_기본', 'button_돌아가기_호버')
-        self.images = {name: pico2d.load_image(str(folder / f'{name}.png')) for name in names}
-        self.tabs = [pico2d.load_image(str(folder / f'tab_{name.replace(" ", "")}.png'))
-                     for name in self.TABS]
+        folder = IMAGE_ROOT / 'ui/current'
+        self.images = {name: pico2d.load_image(str(folder / f'{name}.png'))
+                       for name in ('menu', 'frame', 'button', 'back', 'reset',
+                                    'track', 'fill', 'knob')}
         self.shade = pico2d.load_image(str(IMAGE_ROOT / 'ui/fade_black.png'))
-        self.actions = pico2d.load_image(str(folder / '저장_게임종료_타이틀로_.webp'))
-        font = str(FONT_PATH)
-        self.font = pico2d.load_font(font, 22)
-        self.small = pico2d.load_font(font, 16)
-        self.heading = pico2d.load_font(str(FONT_BOLD_PATH), 28)
+        self.font = pico2d.load_font(str(FONT_PATH), 22)
+        self.small = pico2d.load_font(str(FONT_PATH), 16)
+        self.heading = pico2d.load_font(str(FONT_BOLD_PATH), 26)
         self.tab = 0
         self.mouse = None
         self.in_game = False
+        self.volumes = {'bgm': 80, 'sfx': 80}
+        self.dragging = None
 
     def open(self, in_game=False):
         self.in_game = in_game
         self.mouse = None
+        self.dragging = None
 
     @property
     def action_bounds(self):
@@ -48,100 +47,117 @@ class SettingsMenu:
         left, bottom, right, top = bounds
         return left <= x < right and bottom <= y < top
 
+    def set_volume(self, channel, x):
+        value = (x - self.SLIDER_LEFT) / (self.SLIDER_RIGHT - self.SLIDER_LEFT)
+        self.volumes[channel] = round(100 * max(0, min(1, value)))
+
     def handle_event(self, event):
+        if event.type == pico2d.SDL_WINDOWEVENT and event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
+            self.dragging = None
         if event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_ESCAPE:
+            self.dragging = None
             return 'close'
-        if event.type in (pico2d.SDL_MOUSEMOTION, pico2d.SDL_MOUSEBUTTONDOWN,
-                          pico2d.SDL_MOUSEBUTTONUP):
-            self.mouse = event.x, SCREEN_HEIGHT - event.y
-            if event.type == pico2d.SDL_MOUSEBUTTONDOWN and event.button == pico2d.SDL_BUTTON_LEFT:
-                if self.contains(self.CLOSE_BOUNDS):
-                    return 'close'
-                for action, bounds in self.action_bounds.items():
-                    if action != 'save' and self.contains(bounds):
-                        return action
-                for index, y in enumerate(self.TAB_Y):
-                    if self.contains((190, y - 31, 407, y + 31)):
-                        self.tab = index
-                        break
+        if event.type not in (pico2d.SDL_MOUSEMOTION, pico2d.SDL_MOUSEBUTTONDOWN,
+                              pico2d.SDL_MOUSEBUTTONUP):
+            return None
+        self.mouse = event.x, SCREEN_HEIGHT - event.y
+        if event.type == pico2d.SDL_MOUSEMOTION and self.dragging:
+            self.set_volume(self.dragging, self.mouse[0])
+        if event.type == pico2d.SDL_MOUSEBUTTONUP and event.button == pico2d.SDL_BUTTON_LEFT:
+            if self.dragging:
+                self.set_volume(self.dragging, self.mouse[0])
+            self.dragging = None
+        if event.type != pico2d.SDL_MOUSEBUTTONDOWN or event.button != pico2d.SDL_BUTTON_LEFT:
+            return None
+        if self.contains(self.CLOSE_BOUNDS):
+            self.dragging = None
+            return 'close'
+        if self.contains(self.RESET_BOUNDS):
+            self.volumes.update(bgm=80, sfx=80)
+        for action, bounds in self.action_bounds.items():
+            if action != 'save' and self.contains(bounds):
+                self.dragging = None
+                return action
+        for index, y in enumerate(self.TAB_Y):
+            if self.contains((100, y - 31, 302, y + 31)):
+                self.tab = index
+                self.dragging = None
+                break
+        if self.tab == 2:
+            for channel, y in self.SLIDER_Y.items():
+                if self.contains((self.SLIDER_LEFT - 15, y - 22, self.SLIDER_RIGHT + 15, y + 22)):
+                    self.dragging = channel
+                    self.set_volume(channel, self.mouse[0])
+                    break
         return None
 
     def image(self, name, x, y, width, height):
         self.images[name].draw(x, y, width, height)
 
-    def line(self, y):
-        pico2d.draw_rectangle(438, y, 924, y + 1, 101, 117, 150, filled=True)
+    def centered(self, font, x, y, text, size, color=None):
+        width = sum(size * (.5 if ord(c) < 128 else 1) for c in text)
+        font.draw(x - width / 2, y, text, color or self.INK)
 
-    def label(self, x, y, text):
-        self.font.draw(x, y, text, (235, 238, 248))
+    def button(self, bounds, text, disabled=False, selected=False):
+        left, bottom, right, top = bounds
+        image = self.images['button']
+        image.opacify(.38 if disabled else (1 if self.contains(bounds) or selected else .76))
+        image.draw((left + right) / 2, (bottom + top) / 2, right - left, top - bottom)
+        self.centered(self.small, (left + right) / 2, (bottom + top) / 2, text, 16,
+                      (122, 130, 125) if disabled else self.INK)
 
     def value(self, y, label, value):
-        self.label(448, y, label)
-        self.small.draw(737, y, value, (180, 204, 235))
+        self.font.draw(510, y, label, self.INK)
+        self.font.draw(714, y, value, self.INK)
 
-    def check(self, y, label):
-        self.label(448, y, label)
-        self.image('checkbox_체크', 867, y, 34, 31)
+    def slider(self, channel):
+        y = self.SLIDER_Y[channel]
+        left, right = self.SLIDER_LEFT, self.SLIDER_RIGHT
+        fraction = self.volumes[channel] / 100
+        self.image('track', (left + right) / 2, y, right - left + 12, 23)
+        if fraction > 0:
+            fill = self.images['fill']
+            width = max(1, round(fill.w * fraction))
+            fill.clip_draw(0, 0, width, fill.h, left + (right - left) * fraction / 2,
+                           y, (right - left) * fraction, 12)
+        self.image('knob', left + (right - left) * fraction, y, 27, 30)
+        self.centered(self.small, (left + right) / 2, y - 31,
+                      f'{self.volumes[channel]}%', 16)
 
     def draw(self):
-        self.shade.opacify(.68)
+        self.shade.opacify(.65)
         self.shade.draw(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.image('01_숲유적_배경', 576, 324, 815, 536)
-        self.shade.opacify(.34)
-        self.shade.draw(576, 324, 812, 530)
-        self.image('02_설정창_프레임', 576, 324, 860, 584)
-        self.image('03_제목_장식', 576, 582, 330, 61)
-        self.heading.draw(547, 554, '설정', (246, 240, 224))
-        # A quiet content surface keeps the kit's forest artwork visible around it.
-        self.shade.opacify(.30)
-        self.shade.draw(682, 320, 508, 354)
-        for index, (tab, y) in enumerate(zip(self.tabs, self.TAB_Y)):
-            selected = index == self.tab
-            hovered = self.contains((190, y - 31, 407, y + 31))
-            tab.opacify(1.0 if selected or hovered else .58)
-            tab.draw(298, y, 217, 62)
-            if selected:
-                pico2d.draw_rectangle(192, y - 29, 404, y + 29, 138, 211, 255)
-        icons = ('icon_설정', 'icon_모니터', 'icon_소리', 'icon_게임패드')
-        self.image(icons[self.tab], 465, 466, 36, 36)
-        self.label(498, 466, self.TABS[self.tab])
-        self.line(438)
+        self.image('menu', 201, 324, 310, 460)
+        self.image('frame', 742, 324, 724, 539)
+        for index, y in enumerate(self.TAB_Y):
+            self.button((100, y - 31, 302, y + 31), self.TABS[index], selected=index == self.tab)
+            if index == self.tab:
+                self.small.draw(79, y, '◆', (97, 167, 191))
+        self.centered(self.heading, 850, 470, self.TABS[self.tab], 26)
         if self.tab == 0:
-            self.value(399, '언어', '한국어')
-            self.line(371)
-            self.check(333, '화면 흔들림')
-            self.check(276, '피격 연출')
+            self.value(382, '언어', '한국어')
+            self.value(302, '화면 흔들림', '켜짐')
+            self.value(222, '피격 연출', '켜짐')
         elif self.tab == 1:
-            self.value(399, '화면 모드', '전체 화면')
-            self.value(345, '게임 해상도', f'{SCREEN_WIDTH} × {SCREEN_HEIGHT}')
-            self.line(316)
-            self.label(448, 273, '픽셀 화면 유지')
-            self.image('toggle_켜짐', 864, 273, 58, 44)
+            self.value(382, '화면 모드', '전체 화면')
+            self.value(302, '해상도', f'{SCREEN_WIDTH} × {SCREEN_HEIGHT}')
+            self.value(222, '픽셀 화면', '유지')
         elif self.tab == 2:
-            self.label(448, 396, '배경음악 (BGM)')
-            self.image('slider_기본', 673, 352, 309, 56)
-            self.small.draw(858, 352, '80%', (210, 228, 247))
-            self.label(448, 282, '효과음 (SFX)')
-            self.image('slider_기본', 673, 238, 309, 56)
-            self.small.draw(858, 238, '80%', (210, 228, 247))
+            self.font.draw(510, 370, '배경음악', self.INK)
+            self.font.draw(510, 270, '효과음', self.INK)
+            for channel in self.SLIDER_Y:
+                self.slider(channel)
+            self.centered(self.small, 850, 204, '드래그하여 음량 조절', 16)
         else:
-            for y, label, value in ((400, '이동', 'A / D'), (352, '점프', 'SPACE'),
-                                    (304, '발판 내려가기', 'S'), (256, '색 상호작용', '마우스 왼쪽'),
-                                    (208, '설정 / 계속하기', 'ESC')):
+            for y, label, value in ((395, '이동', 'A / D'), (352, '점프', 'SPACE'),
+                                    (309, '내려가기', 'S'), (266, '색 상호작용', '마우스 왼쪽'),
+                                    (223, '설정 / 계속', 'ESC')):
                 self.value(y, label, value)
-        self.small.draw(444, 159, '설정 변경 기능은 준비 중입니다.', (159, 179, 208))
-        self.small.draw(266, 124, 'ESC  ·  닫기 / 계속하기', (190, 208, 229))
-        for action, row in (('save', 2), ('title', 1), ('quit', 0)):
-            if action not in self.action_bounds:
-                continue
-            bounds = self.action_bounds[action]
-            # Sheet columns: normal, hover, selected, disabled.
-            column = 3 if action == 'save' else int(self.contains(bounds))
-            source_x = (24, 374, 729, 1079)[column]
-            source_top = 285 + row * 210
+        for action, text in (('save', '저장'), ('title', '타이틀로'), ('quit', '게임 종료')):
+            if action in self.action_bounds:
+                self.button(self.action_bounds[action], text, disabled=action == 'save')
+        for name, bounds in (('back', self.CLOSE_BOUNDS), ('reset', self.RESET_BOUNDS)):
             left, bottom, right, top = bounds
-            self.actions.clip_draw(source_x, self.actions.h - source_top - 150,
-                                   350, 150, (left + right) / 2, (bottom + top) / 2,
-                                   right - left, top - bottom)
-        state = '호버' if self.contains(self.CLOSE_BOUNDS) else '기본'
-        self.image(f'button_돌아가기_{state}', 857, 85, 165, 54)
+            self.images[name].opacify(1 if self.contains(bounds) else .8)
+            self.image(name, (left + right) / 2, (bottom + top) / 2, right - left, top - bottom)
+        self.small.draw(704, 100, 'ESC  계속하기', self.INK)
