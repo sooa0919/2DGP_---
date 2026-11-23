@@ -3,6 +3,7 @@
 import pico2d
 
 from .settings import IMAGE_ROOT, SCREEN_HEIGHT, SCREEN_WIDTH
+from .leaves import TitleLeaves
 
 
 class TitleScreen:
@@ -28,11 +29,12 @@ class TitleScreen:
         ui = IMAGE_ROOT / 'ui'
         self.background = pico2d.load_image(str(ui / 'title.png'))
         self.sheet = pico2d.load_image(str(ui / 'title_button.png'))
+        self.leaves = TitleLeaves()
         self.menu = 'main'
         self.mouse = None
 
     def update(self, dt):
-        pass
+        self.leaves.update(dt)
 
     @property
     def buttons(self):
@@ -77,6 +79,7 @@ class TitleScreen:
 
     def draw(self):
         self.background.draw(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.leaves.draw()
         hovered = self.hovered
         for name in self.buttons:
             left, right = self.COLUMNS[name]

@@ -1,7 +1,7 @@
-"""Convert the supplied transparent leaf GIF to a grayscale runtime sprite sheet."""
+"""Convert the supplied transparent leaf GIF to a title sprite sheet."""
 import json
 from pathlib import Path
-from PIL import Image, ImageOps
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -15,9 +15,7 @@ def main():
     for index in range(gif.n_frames):
         gif.seek(index)
         frame = gif.convert('RGBA')
-        gray = ImageOps.grayscale(frame).convert('RGBA')
-        gray.putalpha(frame.getchannel('A'))
-        sheet.paste(gray, (index * width, 0))
+        sheet.paste(frame, (index * width, 0))
         durations.append(gif.info.get('duration', 160) / 1000)
     folder = ROOT / 'image/background/leaves'
     folder.mkdir(exist_ok=True)

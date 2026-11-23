@@ -5,19 +5,6 @@ from .settings import ROOT
 
 
 class MusicManager:
-    PACK = ROOT / 'sound/sound/ui_sound/400 Sounds Pack'
-    MAGIC = ROOT / 'sound/sound/wav'
-    EFFECTS = {
-        'step': ((PACK / 'Footsteps/digital/digital_footstep_grass_1.wav',
-                  PACK / 'Footsteps/digital/digital_footstep_grass_2.wav'), .4),
-        'land': ((PACK / 'Footsteps/digital/digital_footstep_grass_1.wav',), .55),
-        'jump': ((PACK / 'Other/whoosh_1.wav',), .2),
-        'extract': ((MAGIC / 'mana_01.wav',), .3),
-        'give': ((MAGIC / 'enchant_01.wav',), .3),
-        'water': ((MAGIC / 'water_cast_01.wav',), .3),
-        'freeze': ((MAGIC / 'ice_cast_01.wav',), .25),
-        'convert': ((MAGIC / 'mana_01.wav',), .18),
-    }
     GAINS = {'title': 1.0, 'tutorial': 0.25}
     CLICK_PATH = ROOT / 'sound/sound/ui_sound/UI_Click_Soft_Wood_V02.wav'
     TRACKS = {
@@ -32,33 +19,11 @@ class MusicManager:
         self.effects_volume = 80
         self.click_sound = None
         self.click_loaded = False
-        self.effects = {}
-        self.effect_gains = {}
-        self.effect_counts = {}
-
-    def play_effect(self, name):
-        paths, gain = self.EFFECTS[name]
-        count = self.effect_counts.get(name, 0)
-        path = paths[count % len(paths)]
-        self.effect_counts[name] = count + 1
-        if path not in self.effects:
-            try:
-                self.effects[path] = pico2d.load_wav(str(path))
-            except OSError:
-                self.effects[path] = None
-        sound = self.effects[path]
-        if sound is not None:
-            self.effect_gains[path] = gain
-            sound.set_volume(round(self.effects_volume * gain * 128 / 100))
-            sound.play()
 
     def set_effects_volume(self, value):
         self.effects_volume = max(0, min(100, value))
         if self.click_sound is not None:
             self.click_sound.set_volume(round(self.effects_volume * 128 / 100))
-        for path, sound in self.effects.items():
-            if sound is not None:
-                sound.set_volume(round(self.effects_volume * self.effect_gains[path] * 128 / 100))
 
     def play_click(self, volume=None):
         if volume is not None:
@@ -100,10 +65,9 @@ class MusicManager:
             track.set_volume(round(value * self.GAINS[self.current] * 128 / 100))
 
     def close(self):
-        if self.click_sound is not None or self.effects:
+        if self.click_sound is not None:
             pico2d.Mix_HaltChannel(-1)
             self.click_sound = None
-            self.effects.clear()
         track = self.tracks.get(self.current)
         if track is not None:
             track.stop()

@@ -74,7 +74,8 @@ class TitleTests(unittest.TestCase):
         with patch('pico2d.load_image', return_value=Mock(h=529)) as load:
             title = TitleScreen()
         self.assertEqual([c.args[0] for c in load.call_args_list],
-                         [str(IMAGE_ROOT / 'ui/title.png'), str(IMAGE_ROOT / 'ui/title_button.png')])
+                         [str(IMAGE_ROOT / 'ui/title.png'), str(IMAGE_ROOT / 'ui/title_button.png'),
+                          str(IMAGE_ROOT / 'background/leaves/leaves.png')])
         title.update(10)
         title.draw()
         title.background.draw.assert_called_with(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,

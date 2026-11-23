@@ -1,10 +1,10 @@
-"""A subtle, non-colliding layer using all frames of the supplied leaf animation."""
+"""A subtle title layer using all frames of the supplied leaf animation."""
 import json
 import pico2d
 from .settings import IMAGE_ROOT, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
-class ForestLeaves:
+class TitleLeaves:
     def __init__(self):
         folder = IMAGE_ROOT / 'background/leaves'
         self.sheet = pico2d.load_image(str(folder / 'leaves.png'))
@@ -23,11 +23,8 @@ class ForestLeaves:
             remaining -= duration
         return 0
 
-    def draw(self, camera_x, camera_y):
-        offset = camera_x * .12 % SCREEN_WIDTH
+    def draw(self):
         self.sheet.opacify(.65)
         width, height = self.frames['width'], self.frames['height']
-        for left in (-offset, SCREEN_WIDTH - offset):
-            self.sheet.clip_draw(self.frame * width, 0, width, height,
-                                 left + SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - camera_y * .08,
-                                 SCREEN_WIDTH, SCREEN_HEIGHT)
+        self.sheet.clip_draw(self.frame * width, 0, width, height,
+                             SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT)

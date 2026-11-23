@@ -23,9 +23,7 @@ class Player:
     ANIMATION_FPS = {"idle": 8.0, "run": 10.0, "jump": 8.0, "fall": 8.0}
     MOVEMENT_KEYS = (pico2d.SDLK_SPACE, pico2d.SDLK_a, pico2d.SDLK_s, pico2d.SDLK_d)
 
-    def __init__(self, level=None, on_sound=None):
-        self.on_sound = on_sound
-        self.step_distance = 0.0
+    def __init__(self, level=None):
         self.level = level
         self.images = {
             state: pico2d.load_image(
@@ -70,14 +68,11 @@ class Player:
                     and event.key not in self.keys and self.grounded):
                 self.velocity_y = self.JUMP_SPEED
                 self.grounded = False
-                self.step_distance = 0.0
-                self.sound('jump')
             self.keys.add(event.key)
         elif event.type == pico2d.SDL_KEYUP:
             self.keys.discard(event.key)
 
     def update(self, dt):
-        x, grounded, velocity = self.x, self.grounded, self.velocity_y
         dx = int(pico2d.SDLK_d in self.keys) - int(pico2d.SDLK_a in self.keys)
         if self.level is not None:
             remaining = dt
@@ -86,7 +81,6 @@ class Player:
                 self._move_on_platforms(step, dx)
                 remaining -= step
             self._animate(dt, dx)
-            self.movement_sounds(x, grounded, velocity)
             return
         self.x += dx * self.SPEED * dt
         if not self.grounded:
@@ -102,7 +96,6 @@ class Player:
             self.y = SCREEN_HEIGHT - self.TOP_OFFSET
             self.velocity_y = min(0.0, self.velocity_y)
         self._animate(dt, dx)
-        self.movement_sounds(x, grounded, velocity)
 
     def enter_level(self, level):
         self.level = level
@@ -116,7 +109,6 @@ class Player:
         self.keys.clear()
         self.ignored_platforms.clear()
         self.drop_serial = 0
-        self.step_distance = 0.0
 
     @property
     def drop_platforms(self):
@@ -206,22 +198,6 @@ class Player:
             held_keys = self.keys.copy()
             self.enter_level(self.level)
             self.keys = held_keys
-
-    def sound(self, name):
-        if self.on_sound:
-            self.on_sound(name)
-
-    def movement_sounds(self, old_x, was_grounded, old_velocity):
-        if self.grounded and not was_grounded and old_velocity < 0:
-            self.sound('land')
-        distance = abs(self.x - old_x)
-        if self.grounded and was_grounded and not self.in_water and .001 < distance < 64:
-            self.step_distance += distance
-            if self.step_distance >= 76:
-                self.step_distance %= 76
-                self.sound('step')
-        else:
-            self.step_distance = 0.0
 
     def _animate(self, dt, dx):
         if dx:

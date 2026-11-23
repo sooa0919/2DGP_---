@@ -7,8 +7,7 @@ from .settings import SCREEN_HEIGHT, SCREEN_WIDTH
 class ColorSystem:
     INTERACTION_RADIUS = 110
 
-    def __init__(self, on_sound=None):
-        self.on_sound = on_sound
+    def __init__(self):
         self.left_down = False
         self.last_transfer = None
         self.transfer_serial = 0
@@ -51,10 +50,7 @@ class ColorSystem:
             self.notice = ''
         elif event.type == pico2d.SDL_KEYDOWN and event.key in (pico2d.SDLK_1, pico2d.SDLK_2, pico2d.SDLK_3):
             if player.color is not None:
-                old_color = player.color
                 player.color = {pico2d.SDLK_1: 'blue', pico2d.SDLK_2: 'green', pico2d.SDLK_3: 'yellow'}[event.key]
-                if self.on_sound and old_color != player.color:
-                    self.on_sound('convert')
                 self.notice = ''
             else:
                 self.notice = '색을 먼저 회수하세요.'
@@ -102,9 +98,5 @@ class ColorSystem:
         action = ('extract' if extracting else 'deposit') if is_source else (
             'reclaim' if extracting else 'give')
         self.last_transfer = (color, action)
-        if self.on_sound:
-            sound = ('freeze' if extracting and pool in getattr(level, 'droplets', []) else
-                     'extract' if extracting else 'water' if pool in level.water else 'give')
-            self.on_sound(sound)
         self.notice = ''
         return True

@@ -98,11 +98,11 @@ def main():
                 if loading.needs_level:
                     level = Level()
                     background = Background(level)
-                    player = Player(level, on_sound=music.play_effect)
+                    player = Player(level)
                     player.enter_level(level)
                     camera = Camera(SCREEN_WIDTH, level.width,
                                     getattr(level, 'height', SCREEN_HEIGHT))
-                    colors = ColorSystem(on_sound=music.play_effect)
+                    colors = ColorSystem()
                     tutorial = Tutorial() if getattr(level, 'is_tutorial', False) else None
                     title = None
                     loading.ready = True

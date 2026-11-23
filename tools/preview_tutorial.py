@@ -57,13 +57,6 @@ def main():
             player.velocity_y = 0
 
         render(0).save(out / 'tutorial_start.png')
-        leaf_frames = []
-        for index in range(len(bg.leaves.frames['durations'])):
-            leaf_frames.append(render(0))
-            bg.update(bg.leaves.frames['durations'][index])
-        leaf_frames[0].save(out / 'tutorial_leaves.gif', save_all=True,
-                            append_images=leaf_frames[1:],
-                            duration=[round(d * 1000) for d in bg.leaves.frames['durations']], loop=0)
         source = level.color_sources[0]
         colors.interact_at(source.x, source.y, level, player)
         place(288, 96)

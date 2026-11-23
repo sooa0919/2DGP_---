@@ -26,6 +26,16 @@ def main():
             renderer.canvas = Image.new('RGB', (1152, 648))
             title.draw()
             renderer.canvas.save(output / filename)
+        title.menu, title.mouse = 'main', None
+        frames = []
+        for duration in title.leaves.frames['durations']:
+            renderer.canvas = Image.new('RGB', (1152, 648))
+            title.draw()
+            frames.append(renderer.canvas.copy())
+            title.update(duration)
+        frames[0].save(output / 'title_leaves.gif', save_all=True,
+                       append_images=frames[1:],
+                       duration=[round(d * 1000) for d in title.leaves.frames['durations']], loop=0)
 
 
 if __name__ == '__main__':
