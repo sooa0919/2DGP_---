@@ -14,9 +14,10 @@ class SettingsMenu:
                      'save': (100, 299, 302, 361),
                      'title': (100, 219, 302, 281),
                      'quit': (100, 139, 302, 201)}
-    SLIDER_LEFT, SLIDER_RIGHT = 714, 1018
+    SLIDER_LEFT, SLIDER_RIGHT = 714, 950
     SLIDER_Y = {'bgm': 370, 'sfx': 270}
-    INK = (48, 65, 51)
+    INK = (255, 255, 255)
+    FONT_SIZE = 18
 
     def __init__(self):
         folder = IMAGE_ROOT / 'ui/current'
@@ -24,7 +25,7 @@ class SettingsMenu:
                        for name in ('menu', 'frame', 'button', 'back', 'reset',
                                     'track', 'fill', 'knob')}
         self.shade = pico2d.load_image(str(IMAGE_ROOT / 'ui/fade_black.png'))
-        self.small = pico2d.load_font(str(FONT_PATH), 16)
+        self.small = pico2d.load_font(str(FONT_PATH), self.FONT_SIZE)
         self.tab = 0
         self.panel_open = False
         self.mouse = None
@@ -40,11 +41,11 @@ class SettingsMenu:
 
     @property
     def panel_offset(self):
-        return 0 if self.in_game else -166
+        return -166 if self.panel_open else 375
 
     @property
     def action_bounds(self):
-        return self.ACTION_BOUNDS if self.in_game else {}
+        return self.ACTION_BOUNDS if self.in_game and not self.panel_open else {}
 
     def contains(self, bounds):
         if self.mouse is None:
@@ -110,9 +111,15 @@ class SettingsMenu:
     def image(self, name, x, y, width, height):
         self.images[name].draw(x + self.panel_offset, y, width, height)
 
-    def centered(self, font, x, y, text, size, color=None):
+    def text(self, x, y, text, color=None):
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            self.small.draw(x + self.panel_offset + dx, y + dy, text, (48, 65, 51))
+        self.small.draw(x + self.panel_offset, y, text, color or self.INK)
+
+    def centered(self, x, y, text):
+        size = self.FONT_SIZE
         width = sum(size * (.5 if ord(c) < 128 else 1) for c in text)
-        font.draw(x + self.panel_offset - width / 2, y, text, color or self.INK)
+        self.text(x - width / 2, y, text)
 
     def button(self, bounds, text, disabled=False, selected=False):
         left, bottom, right, top = bounds
@@ -120,12 +127,11 @@ class SettingsMenu:
         image.opacify(.38 if disabled else (1 if self.contains(bounds) or selected else .76))
         image.draw((left + right) / 2 + self.panel_offset, (bottom + top) / 2,
                    right - left, top - bottom)
-        self.centered(self.small, (left + right) / 2, (bottom + top) / 2, text, 16,
-                      (122, 130, 125) if disabled else self.INK)
+        self.centered((left + right) / 2, (bottom + top) / 2, text)
 
     def value(self, y, label, value):
-        self.small.draw(714 + self.panel_offset, y, label, self.INK)
-        self.small.draw(880 + self.panel_offset, y, value, self.INK)
+        self.text(714, y, label)
+        self.text(852, y, value)
 
     def slider(self, channel):
         y = self.SLIDER_Y[channel]
@@ -138,13 +144,12 @@ class SettingsMenu:
             fill.clip_draw(0, 0, width, fill.h, left + self.panel_offset + (right - left) * fraction / 2,
                            y, (right - left) * fraction, 12)
         self.image('knob', left + (right - left) * fraction, y, 27, 30)
-        self.centered(self.small, (left + right) / 2, y - 31,
-                      f'{self.volumes[channel]}%', 16)
+        self.centered((left + right) / 2, y - 31, f'{self.volumes[channel]}%')
 
     def draw(self):
         self.shade.opacify(.65)
         self.shade.draw(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT)
-        if self.in_game:
+        if self.in_game and not self.panel_open:
             self.image('menu', 201, 324, 310, 460)
             labels = {'settings': '설정', 'save': '저장', 'title': '타이틀로', 'quit': '종료'}
             for action, bounds in self.ACTION_BOUNDS.items():
@@ -156,8 +161,8 @@ class SettingsMenu:
         for index, bounds in enumerate(self.TAB_BOUNDS):
             self.button(bounds, self.TABS[index], selected=index == self.tab)
         if self.tab == 0:
-            self.small.draw(714 + self.panel_offset, 408, 'BGM', self.INK)
-            self.small.draw(714 + self.panel_offset, 308, '효과음', self.INK)
+            self.text(714, 408, 'BGM')
+            self.text(714, 308, '효과음')
             for channel in self.SLIDER_Y:
                 self.slider(channel)
         else:

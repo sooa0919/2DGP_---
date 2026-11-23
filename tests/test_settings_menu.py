@@ -16,7 +16,7 @@ class SettingsMenuTests(unittest.TestCase):
 
     def click(self, x, y, button=pico2d.SDL_BUTTON_LEFT):
         return self.menu.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONDOWN,
-                                            x=x, y=648-y, button=button))
+                                            x=x + self.menu.panel_offset, y=648-y, button=button))
 
     def click_bounds(self, bounds, button=pico2d.SDL_BUTTON_LEFT):
         left, bottom, right, top = bounds
@@ -40,10 +40,23 @@ class SettingsMenuTests(unittest.TestCase):
         self.assertEqual(self.menu.handle_event(Event(type=pico2d.SDL_KEYDOWN,
                                                       key=pico2d.SDLK_ESCAPE)), 'close')
 
+    def test_centered_menu_is_replaced_by_panel_and_hidden_actions_are_inactive(self):
+        self.assertEqual(201 + self.menu.panel_offset, 576)
+        self.show_settings()
+        self.assertEqual(742 + self.menu.panel_offset, 576)
+        self.assertEqual(self.menu.action_bounds, {})
+        self.assertIsNone(self.click_bounds(self.menu.ACTION_BOUNDS['quit']))
+        self.menu.images['menu'] = Mock()
+        self.menu.draw()
+        self.menu.images['menu'].draw.assert_not_called()
+        self.click_bounds(self.menu.CLOSE_BOUNDS)
+        self.assertEqual(201 + self.menu.panel_offset, 576)
+        self.assertEqual(tuple(self.menu.action_bounds), ('settings', 'save', 'title', 'quit'))
+
     def test_settings_pages_draw_and_reopening_retains_volume(self):
         self.show_settings()
         self.menu.tab = 0
-        self.assertIsNone(self.click(866, 370))
+        self.assertIsNone(self.click(832, 370))
         self.assertEqual(self.menu.volumes['bgm'], 50)
         self.assertEqual(self.menu.tab, 0)
         self.assertIsNone(self.click(280, 85))
@@ -78,11 +91,12 @@ class SettingsMenuTests(unittest.TestCase):
         self.assertEqual(self.menu.volumes, {'bgm': 0, 'sfx': 80})
         self.menu.handle_event(Event(type=pico2d.SDL_MOUSEMOTION, x=1400, y=10))
         self.assertEqual(self.menu.volumes['bgm'], 100)
-        self.menu.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONUP, button=1, x=866, y=10))
+        self.menu.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONUP, button=1,
+                                     x=832 + self.menu.panel_offset, y=10))
         self.assertEqual(self.menu.volumes['bgm'], 50)
         self.menu.handle_event(Event(type=pico2d.SDL_MOUSEMOTION, x=-50, y=10))
         self.assertEqual(self.menu.volumes['bgm'], 50)
-        self.click(1018, 270)
+        self.click(950, 270)
         self.menu.handle_event(Event(type=pico2d.SDL_MOUSEMOTION, x=-20, y=10))
         self.assertEqual(self.menu.volumes, {'bgm': 50, 'sfx': 0})
         self.menu.handle_event(Event(type=pico2d.SDL_WINDOWEVENT,
@@ -114,7 +128,7 @@ class SettingsMenuTests(unittest.TestCase):
         self.menu.small.reset_mock()
         self.menu.panel_open = False
         self.menu.draw()
-        labels = [call.args[2] for call in self.menu.small.draw.call_args_list]
+        labels = [call.args[2] for call in self.menu.small.draw.call_args_list if call.args[3] == (255, 255, 255)]
         self.assertEqual(labels, ['설정', '저장', '타이틀로', '종료'])
 
     def test_title_settings_shows_centered_panel_directly_and_returns_to_title(self):
@@ -128,12 +142,12 @@ class SettingsMenuTests(unittest.TestCase):
         self.assertIn('조작', labels)
         self.assertNotIn('기본값', labels)
         self.assertNotIn('되돌아가기', labels)
-        self.click(714 + self.menu.panel_offset, 370)
+        self.click(714, 370)
         self.assertEqual(self.menu.volumes['bgm'], 0)
         self.menu.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONUP, button=1, x=548, y=278))
-        self.click(1018 + self.menu.panel_offset, 270)
+        self.click(950, 270)
         self.assertEqual(self.menu.volumes['sfx'], 100)
-        self.assertEqual(self.click(1010 + self.menu.panel_offset, 96), 'close')
+        self.assertEqual(self.click(1010, 96), 'close')
         self.menu.open(in_game=False)
         self.assertEqual(self.menu.handle_event(Event(type=pico2d.SDL_KEYDOWN,
                                                       key=pico2d.SDLK_ESCAPE)), 'close')
