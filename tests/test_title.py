@@ -19,6 +19,19 @@ class TitleTests(unittest.TestCase):
         return Event(type=event_type, button=button,
                      x=(left + right) / 2, y=SCREEN_HEIGHT - (bottom + top) / 2)
 
+    def test_click_sound_only_plays_for_enabled_buttons_on_left_press(self):
+        click = self.title.on_click = Mock()
+        self.title.handle_event(self.point('settings', pico2d.SDL_MOUSEMOTION))
+        self.title.handle_event(self.point('settings', button=pico2d.SDL_BUTTON_RIGHT))
+        self.title.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONDOWN, button=1, x=0, y=0))
+        click.assert_not_called()
+        self.title.handle_event(self.point('start'))
+        self.title.handle_event(self.point('new', pico2d.SDL_MOUSEBUTTONUP))
+        self.title.handle_event(self.point('load'))
+        click.assert_called_once()
+        self.title.handle_event(self.point('new'))
+        self.assertEqual(click.call_count, 2)
+
     def test_menu_flow_requires_two_separate_clicks(self):
         self.assertEqual(self.title.buttons, ('start', 'settings', 'quit'))
         self.assertIsNone(self.title.handle_event(self.point('start')))

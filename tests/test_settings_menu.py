@@ -25,6 +25,22 @@ class SettingsMenuTests(unittest.TestCase):
     def show_settings(self):
         self.click_bounds(self.menu.ACTION_BOUNDS['settings'])
 
+    def test_click_sound_uses_sfx_volume_for_buttons_and_ignores_disabled_or_empty_space(self):
+        click = self.menu.on_click = Mock()
+        self.click_bounds(self.menu.ACTION_BOUNDS['save'])
+        self.click_bounds(self.menu.ACTION_BOUNDS['settings'], pico2d.SDL_BUTTON_RIGHT)
+        self.click(0, 0)
+        click.assert_not_called()
+        self.show_settings()
+        click.assert_called_once_with(80)
+        self.menu.volumes['sfx'] = 25
+        self.click_bounds(self.menu.TAB_BOUNDS[1])
+        click.assert_called_with(25)
+        self.click_bounds(self.menu.RESET_BOUNDS)
+        click.assert_called_with(80)
+        self.click_bounds(self.menu.CLOSE_BOUNDS)
+        self.assertEqual(click.call_count, 4)
+
     def test_settings_opens_panel_and_back_returns_to_menu_before_escape_closes(self):
         self.assertFalse(self.menu.panel_open)
         self.show_settings()

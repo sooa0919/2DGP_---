@@ -23,7 +23,8 @@ class TitleScreen:
     NORMAL_HEIGHT = 120
     HOVER_TOP = 330
 
-    def __init__(self):
+    def __init__(self, on_click=None):
+        self.on_click = on_click
         ui = IMAGE_ROOT / 'ui'
         self.background = pico2d.load_image(str(ui / 'title.png'))
         self.sheet = pico2d.load_image(str(ui / 'title_button.png'))
@@ -66,6 +67,8 @@ class TitleScreen:
             if (event.type == pico2d.SDL_MOUSEBUTTONDOWN
                     and event.button == pico2d.SDL_BUTTON_LEFT):
                 selected = self.hovered
+                if selected in ('start', 'new', 'quit', 'settings') and self.on_click:
+                    self.on_click()
                 if selected == 'start':
                     self.menu = 'start'
                 elif selected in ('new', 'quit', 'settings'):

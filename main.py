@@ -25,7 +25,7 @@ def main():
         configure_fullscreen()
         music = MusicManager()
         music.play('title')
-        title = TitleScreen()
+        title = TitleScreen(on_click=music.play_click)
         loading = None
         settings_ui = None
         settings_open = False
@@ -44,13 +44,14 @@ def main():
                 elif settings_open:
                     action = settings_ui.handle_event(event)
                     music.set_volume(settings_ui.volumes['bgm'])
+                    music.set_effects_volume(settings_ui.volumes['sfx'])
                     if action == 'quit':
                         running = False
                         break
                     if action in ('close', 'title'):
                         settings_open = False
                         if action == 'title':
-                            title = TitleScreen()
+                            title = TitleScreen(on_click=music.play_click)
                             music.play('title')
                             level = background = player = camera = colors = tutorial = None
                         previous = perf_counter()
@@ -66,13 +67,13 @@ def main():
                         break
                     if action == 'settings':
                         if settings_ui is None:
-                            settings_ui = SettingsMenu()
+                            settings_ui = SettingsMenu(on_click=music.play_click)
                         settings_ui.open(in_game=False)
                         settings_open = True
                 else:
                     if event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_ESCAPE:
                         if settings_ui is None:
-                            settings_ui = SettingsMenu()
+                            settings_ui = SettingsMenu(on_click=music.play_click)
                         settings_ui.open(in_game=True)
                         settings_open = True
                         player.keys.clear()

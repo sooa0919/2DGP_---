@@ -5,6 +5,27 @@ from code.audio import MusicManager
 
 
 class MusicTests(unittest.TestCase):
+    def test_click_sound_loads_once_uses_effects_volume_and_leaves_bgm_alone(self):
+        bgm, click = Mock(), Mock()
+        with patch('pico2d.load_music', return_value=bgm), \
+             patch('pico2d.load_wav', return_value=click) as load, \
+             patch('pico2d.Mix_HaltChannel') as halt:
+            music = MusicManager()
+            music.play('title')
+            music.play_click()
+            click.set_volume.assert_called_with(102)
+            music.set_effects_volume(0)
+            music.play_click()
+            click.set_volume.assert_called_with(0)
+            music.play_click(50)
+            click.set_volume.assert_called_with(64)
+            self.assertEqual(click.play.call_count, 3)
+            load.assert_called_once_with(str(music.CLICK_PATH))
+            bgm.repeat_play.assert_called_once()
+            bgm.set_volume.assert_called_once_with(102)
+            music.close()
+            halt.assert_called_once_with(-1)
+
     def test_scene_changes_loop_correct_tracks_without_restarting_on_repeat(self):
         title, stage = Mock(), Mock()
         with patch('pico2d.load_music', side_effect=[title, stage]) as load:

@@ -19,7 +19,8 @@ class SettingsMenu:
     INK = (255, 255, 255)
     FONT_SIZE = 18
 
-    def __init__(self):
+    def __init__(self, on_click=None):
+        self.on_click = on_click
         folder = IMAGE_ROOT / 'ui/current'
         self.images = {name: pico2d.load_image(str(folder / f'{name}.png'))
                        for name in ('menu', 'frame', 'button', 'back', 'reset',
@@ -58,6 +59,10 @@ class SettingsMenu:
         value = (x - self.SLIDER_LEFT) / (self.SLIDER_RIGHT - self.SLIDER_LEFT)
         self.volumes[channel] = round(100 * max(0, min(1, value)))
 
+    def click_sound(self):
+        if self.on_click:
+            self.on_click(self.volumes['sfx'])
+
     def handle_event(self, event):
         if event.type == pico2d.SDL_WINDOWEVENT and event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
             self.dragging = None
@@ -80,13 +85,17 @@ class SettingsMenu:
         if event.type != pico2d.SDL_MOUSEBUTTONDOWN or event.button != pico2d.SDL_BUTTON_LEFT:
             return None
         if self.panel_open and self.contains(self.CLOSE_BOUNDS):
+            self.click_sound()
             self.dragging = None
             self.panel_open = False
             return None if self.in_game else 'close'
         if self.panel_open and self.contains(self.RESET_BOUNDS):
             self.volumes.update(bgm=80, sfx=80)
+            self.click_sound()
         for action, bounds in self.action_bounds.items():
             if self.contains(bounds):
+                if action != 'save':
+                    self.click_sound()
                 self.dragging = None
                 if action == 'settings':
                     self.panel_open = True
@@ -97,6 +106,7 @@ class SettingsMenu:
             return None
         for index, bounds in enumerate(self.TAB_BOUNDS):
             if self.contains(bounds):
+                self.click_sound()
                 self.tab = index
                 self.dragging = None
                 break
