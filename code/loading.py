@@ -1,4 +1,4 @@
-"""Timed title fade, animated GIF loading screen, and frozen-play fade-in."""
+"""Timed title fade, animated light-orb loading screen, and play fade-in."""
 import json
 
 import pico2d
@@ -14,6 +14,7 @@ class LoadingScreen:
     TEXT_HOLD = 0.36
     LOOPS = 2
     CYCLE = len(TEXT) * LETTER_TIME + TEXT_HOLD
+    IMAGE_SIZE = 160
 
     def __init__(self):
         ui = IMAGE_ROOT / 'ui'
@@ -62,17 +63,18 @@ class LoadingScreen:
             return
         self.presented = True
         durations = self.frames['durations']
-        remaining = self.time % sum(durations)
+        remaining = round(self.time % round(sum(durations), 9), 9)
         frame = 0
         for index, duration in enumerate(durations):
             frame = index
-            if remaining < duration:
+            if remaining < duration - 1e-9:
                 break
             remaining -= duration
         width, height = self.frames['width'], self.frames['height']
+        scale = self.IMAGE_SIZE / max(width, height)
         self.sheet.clip_draw(frame * width, 0, width, height,
                              SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2,
-                             width * 0.65, height * 0.65)
+                             width * scale, height * scale)
         # Keep the text's left edge fixed while typing, centered as a complete word.
-        self.font.draw(SCREEN_WIDTH / 2 - 65, SCREEN_HEIGHT / 2 - 140,
+        self.font.draw(SCREEN_WIDTH / 2 - 44, SCREEN_HEIGHT / 2 - 110,
                        self.text, (240, 240, 230))

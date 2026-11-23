@@ -44,3 +44,21 @@ class LoadingTests(unittest.TestCase):
         self.loading.ready = True
         self.loading.update(0)
         self.assertEqual(self.loading.phase, 'in')
+
+    def test_new_webp_sheet_plays_all_twelve_frames_and_loops(self):
+        from PIL import Image
+        from code.settings import IMAGE_ROOT
+        self.loading.phase = 'loading'
+        with Image.open(IMAGE_ROOT / 'ui/loading.webp') as source, \
+             Image.open(IMAGE_ROOT / 'ui/loading_frames.png') as prepared:
+            self.assertEqual(len(self.loading.frames['durations']), 12)
+            self.assertEqual(self.loading.frames['width'], source.width // 12)
+            self.assertEqual(prepared.size, (source.width, source.width // 12))
+        for frame, duration in enumerate(self.loading.frames['durations']):
+            self.loading.draw()
+            args = self.loading.sheet.clip_draw.call_args.args
+            self.assertEqual(args[:4], (frame * 181, 0, 181, 181))
+            self.assertEqual(args[-2:], (160, 160))
+            self.loading.update(duration)
+        self.loading.draw()
+        self.assertEqual(self.loading.sheet.clip_draw.call_args.args[0], 0)

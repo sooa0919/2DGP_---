@@ -14,10 +14,10 @@ class TitleScreen:
         'new': (1265, 1650),
         'load': (1670, 2100),
     }
-    SCALE = 0.6
+    SCALE = 0.5
     LEFT = 82
     FIRST_Y = 370
-    SPACING = 110
+    SPACING = 96
     FRAME_HEIGHT = 170
     NORMAL_TOP = 210
     NORMAL_HEIGHT = 120
