@@ -59,10 +59,8 @@ def main():
         render(0).save(out / 'tutorial_start.png')
         source = level.color_sources[0]
         colors.interact_at(source.x, source.y, level, player)
-        player.interaction.update(1)
         place(288, 96)
         colors.interact_at(321, 132, level, player)
-        player.interaction.update(1)
         render(0).save(out / 'tutorial_water.png')
 
         player.enter_level(level)
@@ -70,7 +68,6 @@ def main():
         player.color = 'green'
         place(808, 96)
         colors.interact_at(808, 132, level, player)
-        player.interaction.update(1)
         place(808, 336)
         render(600).save(out / 'tutorial_green.png')
 
@@ -79,16 +76,16 @@ def main():
         level.vines[3].active = True
         place(3240, 480)
         drop = level.droplets[0]
-        drop.top, drop.bottom = 560, 480
+        for i, part in enumerate(level.droplets):
+            part.top = 96 + (560 - 96 - i * 220) % 880
+            part.bottom = part.top - 80
         colors.interact_at(drop.left + 1, player.y, level, player)
-        player.interaction.update(1)
         place(3440, 560)
         level.update(0, player)
         render(2944, 200).save(out / 'tutorial_frozen_water.png')
         player.color = 'yellow'
         place(3696, 600)
         colors.interact_at(3713, 636, level, player)
-        player.interaction.update(1)
         render(2944, 200).save(out / 'tutorial_yellow.png')
         place(4040, 96)
         level.update(0, player)
@@ -116,7 +113,9 @@ def main():
         level.vines[3].active = True
         place(3240,480)
         drop = level.droplets[0]
-        drop.top, drop.bottom = 600, 520
+        for i, part in enumerate(level.droplets):
+            part.top = 96 + (600 - 96 - i * 220) % 880
+            part.bottom = part.top - 80
         frames=[]
         for frame in range(36):
             if frame in (10,24):
