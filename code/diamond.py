@@ -1,9 +1,9 @@
-"""Animated blue color source using the supplied five diamond frames."""
+"""Color source with a square placeholder independent of removed object assets."""
 from dataclasses import dataclass
 
 import pico2d
 
-from .settings import IMAGE_ROOT, SCREEN_WIDTH
+from .settings import SCREEN_WIDTH
 
 
 @dataclass
@@ -47,17 +47,12 @@ class Diamond:
 
 
 class DiamondRenderer:
-    def __init__(self):
-        folder = IMAGE_ROOT / 'object/diamond'
-        self.blue = [pico2d.load_image(str(folder / f'blue-{i:02}.png'))
-                     for i in range(1, 6)]
-        self.gray = [pico2d.load_image(str(folder / f'gray-{i:02}.png'))
-                     for i in range(1, 6)]
-
     def draw(self, sources, camera_x, camera_y=0):
         for source in sources:
             if source.right >= camera_x and source.left <= camera_x + SCREEN_WIDTH:
-                frames = self.blue if source.has_blue else self.gray
-                frames[source.frame].draw(round(source.x - camera_x),
-                                          round(source.y - camera_y),
-                                          source.WIDTH, source.HEIGHT)
+                color = (48, 164, 231) if source.has_blue else (150, 156, 162)
+                half = source.WIDTH / 2
+                x, y = source.x - camera_x, source.y - camera_y
+                bounds = (round(x - half), round(y - half), round(x + half), round(y + half))
+                pico2d.draw_rectangle(*bounds, *color, filled=True)
+                pico2d.draw_rectangle(*bounds, 217, 225, 232)

@@ -36,12 +36,15 @@ class SettingsMenu:
         self.in_game = in_game
         self.mouse = None
         self.dragging = None
-        self.panel_open = False
+        self.panel_open = not in_game
+
+    @property
+    def panel_offset(self):
+        return 0 if self.in_game else -166
 
     @property
     def action_bounds(self):
-        return (self.ACTION_BOUNDS if self.in_game else
-                {key: self.ACTION_BOUNDS[key] for key in ('settings', 'quit')})
+        return self.ACTION_BOUNDS if self.in_game else {}
 
     def contains(self, bounds):
         if self.mouse is None:
@@ -59,14 +62,14 @@ class SettingsMenu:
             self.dragging = None
         if event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_ESCAPE:
             self.dragging = None
-            if self.panel_open:
+            if self.panel_open and self.in_game:
                 self.panel_open = False
                 return None
             return 'close'
         if event.type not in (pico2d.SDL_MOUSEMOTION, pico2d.SDL_MOUSEBUTTONDOWN,
                               pico2d.SDL_MOUSEBUTTONUP):
             return None
-        self.mouse = event.x, SCREEN_HEIGHT - event.y
+        self.mouse = event.x - self.panel_offset, SCREEN_HEIGHT - event.y
         if event.type == pico2d.SDL_MOUSEMOTION and self.dragging:
             self.set_volume(self.dragging, self.mouse[0])
         if event.type == pico2d.SDL_MOUSEBUTTONUP and event.button == pico2d.SDL_BUTTON_LEFT:
@@ -78,7 +81,7 @@ class SettingsMenu:
         if self.panel_open and self.contains(self.CLOSE_BOUNDS):
             self.dragging = None
             self.panel_open = False
-            return None
+            return None if self.in_game else 'close'
         if self.panel_open and self.contains(self.RESET_BOUNDS):
             self.volumes.update(bgm=80, sfx=80)
         for action, bounds in self.action_bounds.items():
@@ -105,21 +108,24 @@ class SettingsMenu:
         return None
 
     def image(self, name, x, y, width, height):
-        self.images[name].draw(x, y, width, height)
+        self.images[name].draw(x + self.panel_offset, y, width, height)
 
     def centered(self, font, x, y, text, size, color=None):
         width = sum(size * (.5 if ord(c) < 128 else 1) for c in text)
-        font.draw(x - width / 2, y, text, color or self.INK)
+        font.draw(x + self.panel_offset - width / 2, y, text, color or self.INK)
 
-    def button(self, bounds, disabled=False, selected=False):
+    def button(self, bounds, text, disabled=False, selected=False):
         left, bottom, right, top = bounds
         image = self.images['button']
         image.opacify(.38 if disabled else (1 if self.contains(bounds) or selected else .76))
-        image.draw((left + right) / 2, (bottom + top) / 2, right - left, top - bottom)
+        image.draw((left + right) / 2 + self.panel_offset, (bottom + top) / 2,
+                   right - left, top - bottom)
+        self.centered(self.small, (left + right) / 2, (bottom + top) / 2, text, 16,
+                      (122, 130, 125) if disabled else self.INK)
 
     def value(self, y, label, value):
-        self.small.draw(714, y, label, self.INK)
-        self.small.draw(880, y, value, self.INK)
+        self.small.draw(714 + self.panel_offset, y, label, self.INK)
+        self.small.draw(880 + self.panel_offset, y, value, self.INK)
 
     def slider(self, channel):
         y = self.SLIDER_Y[channel]
@@ -129,7 +135,7 @@ class SettingsMenu:
         if fraction > 0:
             fill = self.images['fill']
             width = max(1, round(fill.w * fraction))
-            fill.clip_draw(0, 0, width, fill.h, left + (right - left) * fraction / 2,
+            fill.clip_draw(0, 0, width, fill.h, left + self.panel_offset + (right - left) * fraction / 2,
                            y, (right - left) * fraction, 12)
         self.image('knob', left + (right - left) * fraction, y, 27, 30)
         self.centered(self.small, (left + right) / 2, y - 31,
@@ -138,18 +144,20 @@ class SettingsMenu:
     def draw(self):
         self.shade.opacify(.65)
         self.shade.draw(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2, SCREEN_WIDTH, SCREEN_HEIGHT)
-        self.image('menu', 201, 324, 310, 460)
-        for action, bounds in self.ACTION_BOUNDS.items():
-            self.button(bounds, disabled=action == 'save' or action not in self.action_bounds,
-                        selected=action == 'settings' and self.panel_open)
+        if self.in_game:
+            self.image('menu', 201, 324, 310, 460)
+            labels = {'settings': '설정', 'save': '저장', 'title': '타이틀로', 'quit': '종료'}
+            for action, bounds in self.ACTION_BOUNDS.items():
+                self.button(bounds, labels[action], disabled=action == 'save',
+                            selected=action == 'settings' and self.panel_open)
         if not self.panel_open:
             return
         self.image('frame', 742, 324, 724, 539)
         for index, bounds in enumerate(self.TAB_BOUNDS):
-            self.button(bounds, selected=index == self.tab)
+            self.button(bounds, self.TABS[index], selected=index == self.tab)
         if self.tab == 0:
-            self.small.draw(714, 408, 'BGM', self.INK)
-            self.small.draw(714, 308, '효과음', self.INK)
+            self.small.draw(714 + self.panel_offset, 408, 'BGM', self.INK)
+            self.small.draw(714 + self.panel_offset, 308, '효과음', self.INK)
             for channel in self.SLIDER_Y:
                 self.slider(channel)
         else:

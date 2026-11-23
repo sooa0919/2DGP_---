@@ -12,6 +12,7 @@ class SettingsMenuTests(unittest.TestCase):
         with patch('pico2d.load_image', return_value=Mock(w=538, h=1086)), \
              patch('pico2d.load_font', return_value=Mock()):
             self.menu = SettingsMenu()
+        self.menu.open(in_game=True)
 
     def click(self, x, y, button=pico2d.SDL_BUTTON_LEFT):
         return self.menu.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONDOWN,
@@ -46,7 +47,7 @@ class SettingsMenuTests(unittest.TestCase):
         self.assertEqual(self.menu.volumes['bgm'], 50)
         self.assertEqual(self.menu.tab, 0)
         self.assertIsNone(self.click(280, 85))
-        self.menu.open()
+        self.menu.open(in_game=True)
         self.assertIsNone(self.menu.mouse)
         self.assertIsNone(self.menu.dragging)
         self.assertFalse(self.menu.panel_open)
@@ -58,10 +59,11 @@ class SettingsMenuTests(unittest.TestCase):
 
     def test_title_and_quit_buttons_return_actions_only_on_left_click(self):
         self.menu.open(in_game=False)
-        self.assertEqual(tuple(self.menu.action_bounds), ('settings', 'quit'))
+        self.assertTrue(self.menu.panel_open)
+        self.assertEqual(self.menu.action_bounds, {})
         self.assertIsNone(self.click(480, 85))
         self.assertIsNone(self.click(280, 85))
-        self.assertEqual(self.click_bounds(self.menu.ACTION_BOUNDS['quit']), 'quit')
+        self.assertIsNone(self.click_bounds(self.menu.ACTION_BOUNDS['quit']))
         self.menu.open(in_game=True)
         self.assertEqual(tuple(self.menu.action_bounds), ('settings', 'save', 'title', 'quit'))
         self.assertEqual(self.click_bounds(self.menu.ACTION_BOUNDS['title']), 'title')
@@ -102,7 +104,7 @@ class SettingsMenuTests(unittest.TestCase):
         self.assertIsNone(self.menu.dragging)
         self.assertFalse(self.menu.panel_open)
 
-    def test_hidden_panel_and_control_tab_cannot_change_sound_and_buttons_have_no_text(self):
+    def test_hidden_panel_and_control_tab_cannot_change_sound_and_menu_labels_are_restored(self):
         self.click(714, 370)
         self.assertEqual(self.menu.volumes['bgm'], 80)
         self.show_settings()
@@ -112,7 +114,29 @@ class SettingsMenuTests(unittest.TestCase):
         self.menu.small.reset_mock()
         self.menu.panel_open = False
         self.menu.draw()
-        self.menu.small.draw.assert_not_called()
+        labels = [call.args[2] for call in self.menu.small.draw.call_args_list]
+        self.assertEqual(labels, ['설정', '저장', '타이틀로', '종료'])
+
+    def test_title_settings_shows_centered_panel_directly_and_returns_to_title(self):
+        self.menu.open(in_game=False)
+        self.menu.tab = 0
+        self.menu.images['menu'] = Mock()
+        self.menu.draw()
+        self.menu.images['menu'].draw.assert_not_called()
+        labels = [call.args[2] for call in self.menu.small.draw.call_args_list]
+        self.assertIn('사운드', labels)
+        self.assertIn('조작', labels)
+        self.assertNotIn('기본값', labels)
+        self.assertNotIn('되돌아가기', labels)
+        self.click(714 + self.menu.panel_offset, 370)
+        self.assertEqual(self.menu.volumes['bgm'], 0)
+        self.menu.handle_event(Event(type=pico2d.SDL_MOUSEBUTTONUP, button=1, x=548, y=278))
+        self.click(1018 + self.menu.panel_offset, 270)
+        self.assertEqual(self.menu.volumes['sfx'], 100)
+        self.assertEqual(self.click(1010 + self.menu.panel_offset, 96), 'close')
+        self.menu.open(in_game=False)
+        self.assertEqual(self.menu.handle_event(Event(type=pico2d.SDL_KEYDOWN,
+                                                      key=pico2d.SDLK_ESCAPE)), 'close')
 
     def test_return_to_title_allows_fresh_game_and_quit_closes_canvas(self):
         import main

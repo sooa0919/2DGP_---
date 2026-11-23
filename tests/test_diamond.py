@@ -132,9 +132,20 @@ class DiamondTests(unittest.TestCase):
                 self.source.update(1 / Diamond.FPS)
             self.assertEqual(frames, [0, 1, 2, 3, 4])
             self.assertEqual(self.source.frame, 0)
-            self.renderer.draw([self.source], 0)
-            images = self.renderer.blue if has_blue else self.renderer.gray
-            images[0].draw.assert_called()
+            with patch('pico2d.draw_rectangle') as draw:
+                self.renderer.draw([self.source], 100, 20)
+            bounds = draw.call_args_list[0].args[:4]
+            self.assertEqual(bounds[2] - bounds[0], bounds[3] - bounds[1])
+            expected = (48, 164, 231) if has_blue else (150, 156, 162)
+            self.assertEqual(draw.call_args_list[0].args[4:7], expected)
+
+    def test_source_placeholder_needs_no_deleted_images(self):
+        with patch('pico2d.load_image', side_effect=FileNotFoundError) as load:
+            renderer = DiamondRenderer()
+        load.assert_not_called()
+        with patch('pico2d.draw_rectangle') as draw:
+            renderer.draw([self.source], 0)
+        self.assertEqual(draw.call_count, 2)
 
     def test_falling_out_of_map_restores_the_diamond_color(self):
         self.extract()
