@@ -37,6 +37,7 @@ class MusicTests(unittest.TestCase):
             music.play('tutorial')
             title.stop.assert_called_once()
             stage.repeat_play.assert_called_once()
+            stage.set_volume.assert_called_with(51)
             music.play('title')
             stage.stop.assert_called_once()
             self.assertEqual(title.repeat_play.call_count, 2)
@@ -58,9 +59,9 @@ class MusicTests(unittest.TestCase):
             music.play('tutorial')
             stage.set_volume.assert_called_with(0)
             music.set_volume(80)
-            stage.set_volume.assert_called_with(102)
+            stage.set_volume.assert_called_with(51)
             music.set_volume(120)
-            stage.set_volume.assert_called_with(128)
+            stage.set_volume.assert_called_with(64)
             stage.repeat_play.assert_called_once()
 
     def test_missing_audio_device_does_not_interrupt_game_or_retry_each_frame(self):

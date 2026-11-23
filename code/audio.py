@@ -5,6 +5,7 @@ from .settings import ROOT
 
 
 class MusicManager:
+    GAINS = {'title': 1.0, 'tutorial': 0.5}
     CLICK_PATH = ROOT / 'sound/sound/ui_sound/UI_Click_Bubble_Pop_V01.wav'
     TRACKS = {
         'title': ROOT / 'sound/sound/title_bgm/placidplace-fantasy-lucid-forestpart-two-49992.mp3',
@@ -51,7 +52,7 @@ class MusicManager:
         self.current = scene
         track = self.tracks[scene]
         if track is not None:
-            track.set_volume(round(self.volume * 128 / 100))
+            track.set_volume(round(self.volume * self.GAINS[scene] * 128 / 100))
             track.repeat_play()
 
     def set_volume(self, value):
@@ -61,7 +62,7 @@ class MusicManager:
         self.volume = value
         track = self.tracks.get(self.current)
         if track is not None:
-            track.set_volume(round(value * 128 / 100))
+            track.set_volume(round(value * self.GAINS[self.current] * 128 / 100))
 
     def close(self):
         if self.click_sound is not None:
