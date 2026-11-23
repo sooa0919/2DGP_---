@@ -1,4 +1,4 @@
-"""One-shot color transfer poses and the extraction swirl behind the player."""
+"""One-shot character poses for color extraction and transfer."""
 import pico2d
 
 from .settings import IMAGE_ROOT
@@ -10,14 +10,11 @@ class InteractionAnimation:
     FPS = 10
     DURATION = FRAMES / FPS
     DRAW_SIZE = 92
-    EFFECT_SIZE = 116
-    EFFECT_FRAMES = 14
 
     def __init__(self):
         folder = IMAGE_ROOT / 'character/interaction'
         self.poses = {color: pico2d.load_image(str(folder / f'mouse_{color}.webp'))
                       for color in self.COLORS}
-        self.effect = pico2d.load_image(str(folder / 'extraction_effects.png'))
         self.reset()
 
     def reset(self):
@@ -48,13 +45,6 @@ class InteractionAnimation:
         size = self.DRAW_SIZE
         # Source feet are roughly 91% down each cell; match the standing floor.
         y = bottom + size * (0.91 - 0.5)
-        if self.extracting:
-            frame = min(self.EFFECT_FRAMES - 1,
-                        int(self.time / self.DURATION * self.EFFECT_FRAMES))
-            row = self.COLORS.index(self.color)
-            self.effect.clip_draw(frame * 64, self.effect.h - (row + 1) * 64,
-                                  64, 64, round(x), round(bottom + 34),
-                                  self.EFFECT_SIZE, self.EFFECT_SIZE)
         image = self.poses[self.color]
         frame = min(self.FRAMES - 1, int(self.time * self.FPS))
         row, column = divmod(frame + (0 if self.extracting else 8), 4)

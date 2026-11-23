@@ -9,7 +9,6 @@ from code.color_system import ColorSystem
 from code.interaction import InteractionAnimation
 from code.level import Platform
 from code.player import Player
-from code.settings import IMAGE_ROOT
 from code.tutorial_level import TutorialLevel
 
 
@@ -52,7 +51,6 @@ class InteractionTests(unittest.TestCase):
                     self.player.start_interaction(color, extracting)
                     image = self.animation.poses[color]
                     image.reset_mock()
-                    self.animation.effect.reset_mock()
                     for frame in range(8):
                         self.player.facing = -1 if frame % 2 == 0 else 1
                         self.player.draw(20, 30)
@@ -67,19 +65,6 @@ class InteractionTests(unittest.TestCase):
                         self.assertEqual(args[6], round(self.player.x - 20))
                         self.animation.update(.1)
                     self.assertFalse(self.animation.active)
-                    self.assertEqual(self.animation.effect.clip_draw.call_count, 8 if extracting else 0)
-
-    def test_extraction_swirl_draws_behind_pose_and_follows_camera(self):
-        calls = Mock()
-        calls.attach_mock(self.animation.effect, 'effect')
-        calls.attach_mock(self.animation.poses['green'], 'pose')
-        self.player.start_interaction('green', True)
-        self.player.draw(20, 30)
-        self.assertEqual([call[0] for call in calls.mock_calls],
-                         ['effect.clip_draw', 'pose.clip_composite_draw'])
-        args = self.animation.effect.clip_draw.call_args.args
-        self.assertEqual(args[:4], (0, 64, 64, 64))
-        self.assertEqual(args[4:6], (round(self.player.x-20), round(self.player.bottom-30+34)))
 
     def test_animation_expires_and_reset_or_fall_clears_it(self):
         self.player.start_interaction('yellow', False)
@@ -92,16 +77,6 @@ class InteractionTests(unittest.TestCase):
         self.player.y = -200
         self.player.update(.01)
         self.assertFalse(self.animation.active)
-
-    def test_generated_effect_keeps_source_frames_and_transparency(self):
-        root = IMAGE_ROOT / 'character'
-        with Image.open(root / 'effefct/Effect and FX Pixel All Free (1)/Free/Part 1/16.png') as original, \
-             Image.open(root / 'interaction/extraction_effects.png') as packed:
-            self.assertEqual(packed.size, (896, 192))
-            self.assertEqual(original.crop((0, 128, 896, 256)).tobytes(),
-                             packed.crop((0, 0, 896, 128)).tobytes())
-            self.assertEqual(original.getchannel('A').crop((0, 320, 896, 384)).tobytes(),
-                             packed.getchannel('A').crop((0, 128, 896, 192)).tobytes())
 
     def test_movement_is_locked_then_resumes_with_held_direction(self):
         self.player.handle_event(Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_d))
