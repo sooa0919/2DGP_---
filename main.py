@@ -4,7 +4,7 @@ from time import perf_counter
 
 import pico2d
 
-from code.temple import TempleBackground as Background
+from code.blockout import ForestBlockout as Background
 from code.camera import Camera
 from code.display import clear_canvas, configure_fullscreen
 from code.player import Player
@@ -118,6 +118,8 @@ def main():
                 continue
             if not settings_open and loading is None and (not tutorial or not tutorial.paused):
                 player.update(dt)
+                if hasattr(level, 'update'):
+                    level.update(dt, player)
                 background.update(dt)
             if tutorial and loading is None and not settings_open:
                 tutorial.update(dt, level, player, colors)

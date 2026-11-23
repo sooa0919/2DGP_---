@@ -46,7 +46,7 @@ class DiamondTests(unittest.TestCase):
     def test_diamond_requires_nearby_hit_and_fresh_click(self):
         self.assertIsNone(self.colors.target_at(self.source.left - 1, self.source.y,
                                                 self.level, self.player))
-        self.player.x = 64
+        self.player.x = self.source.x - self.colors.INTERACTION_RADIUS - 1
         self.assertFalse(self.colors.interact_at(self.source.x, self.source.y,
                                                  self.level, self.player))
         self.player.x = self.level.spawn[0]
@@ -70,19 +70,19 @@ class DiamondTests(unittest.TestCase):
         self.assertAlmostEqual(self.fall.animation_time, .2)
         self.player.interaction.update(self.player.interaction.DURATION)
         self.player.keys.add(pico2d.SDLK_d)
-        for _ in range(65):
+        for _ in range(100):
             self.player.update(1 / 60)
         self.assertGreater(self.player.x, self.fall.right)
-        self.assertEqual(self.player.bottom, 0)
+        self.assertEqual(self.player.bottom, self.basin.bottom)
         self.player.handle_event(Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_SPACE))
         self.player.update(.7)
         self.assertGreater(self.player.x, self.basin.right)
         self.assertTrue(self.player.grounded)
-        self.assertEqual(self.player.bottom, 64)
+        self.assertEqual(self.player.bottom, 96)
 
     def test_gray_waterfall_blocks_walking_and_jumping_from_both_sides(self):
-        for x, key, boundary in ((304, pico2d.SDLK_d, self.fall.left),
-                                 (544, pico2d.SDLK_a, self.fall.right)):
+        for x, key, boundary in ((self.fall.left - self.player.HALF_WIDTH - 1, pico2d.SDLK_d, self.fall.left),
+                                 (self.fall.right + self.player.HALF_WIDTH + 1, pico2d.SDLK_a, self.fall.right)):
             with self.subTest(key=key):
                 self.player.enter_level(self.level)
                 self.player.x = x

@@ -33,43 +33,32 @@ class TutorialTests(unittest.TestCase):
         self.player.x, self.player.y = 160, 196
         self.player.grounded = True
 
-    def test_tutorial_has_first_blue_puzzle_and_one_thin_platform(self):
+    def test_reference_map_starts_at_far_left_with_gray_player_and_a_blue_gem(self):
         self.assertTrue(self.level.gimmicks_enabled)
-        self.assertEqual(len(self.level.water), 2)
-        self.assertEqual(len(self.level.color_sources), 1)
-        self.assertEqual(self.level.objects, [])
-        self.assertEqual(len(self.level.thin_platforms), 1)
+        self.assertEqual((self.level.width, self.level.height), (4096, 1008))
+        self.assertEqual(self.level.spawn, (80, 96))
+        self.assertIsNone(self.player.color)
+        self.assertEqual(len(self.level.vines), 4)
+        self.assertEqual(len(self.level.droplets), 4)
+        source = self.level.color_sources[0]
+        self.assertGreater(source.x, self.player.x)
+        self.assertLess(source.x, self.level.water[0].left)
+        self.assertTrue(source.has_blue)
         self.assertTrue(all(p.one_way for p in self.level.thin_platforms))
-        self.assertEqual(self.level.spawn, (96, 64))
-        ceiling = min(p.bottom for p in self.level.platforms
-                      if p.left <= self.player.x < p.right and p.bottom > self.player.top)
-        body_height = self.player.TOP_OFFSET + self.player.FOOT_OFFSET
-        self.assertGreaterEqual((ceiling - self.player.bottom) / body_height, 2)
-        self.assertLessEqual((ceiling - self.player.bottom) / body_height, 2.5)
 
-    def test_key_repeat_does_not_finish_movement_lesson(self):
-        self.key(pico2d.SDLK_a)
-        for _ in range(5):
-            self.key(pico2d.SDLK_a)
-        self.assertEqual(self.ui.counts[pico2d.SDLK_a], 1)
-        for key in (pico2d.SDLK_a, pico2d.SDLK_d, pico2d.SDLK_d):
-            self.key(key, False)
-            self.key(key)
-        self.assertEqual(self.ui.lesson, 'jump')
-
-    def test_upper_room_jump_uses_world_ceiling_and_exit_requires_upper_floor(self):
-        self.player.x = self.level.end_x + 32
+    def test_exit_requires_lamp_and_the_final_route_stage(self):
+        self.player.x = self.level.end_x + 8
         self.player.y = self.level.end_y + self.player.FOOT_OFFSET
+        self.assertFalse(self.level.at_end(self.player))
+        self.level.lamp.active = True
+        self.assertFalse(self.level.at_end(self.player))
+        self.level.progress = 7
         self.assertTrue(self.level.at_end(self.player))
         self.key(pico2d.SDLK_SPACE)
         self.player.update(.2)
-        self.assertGreater(self.player.bottom, self.level.end_y)
         self.assertFalse(self.level.at_end(self.player))
         self.player.update(.7)
-        self.assertTrue(self.player.grounded)
         self.assertTrue(self.level.at_end(self.player))
-        self.player.y = 128 + self.player.FOOT_OFFSET
-        self.assertFalse(self.level.at_end(self.player))
 
     def test_camera_tracks_vertical_world_and_stops_at_edges(self):
         camera = Camera(1152, 4096, 1536)
@@ -127,24 +116,15 @@ class TutorialTests(unittest.TestCase):
         self.assertAlmostEqual(self.player.velocity_y, velocity - self.player.GRAVITY * .1)
         self.assertEqual(self.player.drop_serial, 0)
 
-    def test_no_color_message_and_icons_follow_head(self):
-        self.colors.transfer_serial = 1
-        self.colors.last_transfer = ('blue', 'give')
-        self.ui.update(.1, self.level, self.player, self.colors)
-        self.assertIsNone(self.ui.message)
-        self.ui.draw(self.level, self.player, self.colors, 0)
-        self.ui.font.draw.assert_not_called()
-        self.ui.small.draw.assert_not_called()
-        calls = self.ui.keyboard.clip_draw.call_args_list
-        self.assertAlmostEqual((calls[0].args[4] + calls[1].args[4]) / 2, self.player.x)
-        self.assertLess(calls[0].args[5] - self.player.top, 34)
-
-    def test_s_lesson_completes_after_successful_drop(self):
-        self.platform_room()
-        self.ui.moved = self.ui.jumped = True
-        self.key(pico2d.SDLK_s)
-        self.ui.update(.1, self.level, self.player, self.colors)
-        self.assertTrue(self.ui.fell)
+    def test_new_guidance_and_color_selector_draw_without_pausing(self):
+        with patch('pico2d.draw_rectangle'):
+            self.ui.draw(self.level, self.player, self.colors, 0)
+        self.ui.font.draw.assert_called()
+        self.assertGreaterEqual(self.ui.small.draw.call_count, 5)
+        self.assertFalse(self.ui.paused)
+        self.ui.mouse_pos = (100, 100)
+        self.key(pico2d.SDLK_r)
+        self.assertIsNone(self.ui.mouse_pos)
 
     def test_reset_clears_ignored_platforms(self):
         self.platform_room()

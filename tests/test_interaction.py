@@ -18,6 +18,7 @@ class InteractionTests(unittest.TestCase):
             with Image.open(path) as image:
                 return Mock(w=image.width, h=image.height)
         self.level = TutorialLevel()
+        self.level.allow_moving_interaction = False
         with patch('pico2d.load_image', side_effect=load):
             self.player = Player(self.level)
         self.player.enter_level(self.level)
@@ -114,8 +115,9 @@ class InteractionTests(unittest.TestCase):
         self.player.y += 20
         self.player.grounded = False
         self.player.start_interaction('blue', True)
+        start_y = self.player.y
         self.player.update(.1)
-        self.assertLess(self.player.y, 120)
+        self.assertLess(self.player.y, start_y)
         self.assertTrue(self.animation.active)
         self.player.update(.2)
         self.assertEqual(self.player.bottom, self.level.spawn[1])

@@ -39,6 +39,13 @@ class Player:
         }
         self.images["fall"] = self.images["jump"]
         self.gray_images["fall"] = self.gray_images["jump"]
+        self.color_images = {'blue': self.images}
+        for color in ('green', 'yellow'):
+            sheets = {state: pico2d.load_image(str(
+                IMAGE_ROOT / 'character' / state / f'{state}_{color}.png'))
+                for state in ('idle', 'run', 'jump')}
+            sheets['fall'] = sheets['jump']
+            self.color_images[color] = sheets
         self.interaction = InteractionAnimation()
         self.has_blue = getattr(level, 'starting_blue', False)
         self.x = 200.0
@@ -57,9 +64,9 @@ class Player:
             if event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
                 self.keys.clear()
         elif event.type == pico2d.SDL_KEYDOWN and event.key in self.MOVEMENT_KEYS:
-            if not self.interaction.active and event.key == pico2d.SDLK_s and event.key not in self.keys:
+            if not self.controls_locked and event.key == pico2d.SDLK_s and event.key not in self.keys:
                 self.drop_through()
-            if (not self.interaction.active and event.key == pico2d.SDLK_SPACE
+            if (not self.controls_locked and event.key == pico2d.SDLK_SPACE
                     and event.key not in self.keys and self.grounded):
                 self.velocity_y = self.JUMP_SPEED
                 self.grounded = False
@@ -68,7 +75,7 @@ class Player:
             self.keys.discard(event.key)
 
     def update(self, dt):
-        movement_locked = self.interaction.active
+        movement_locked = self.controls_locked
         self.interaction.update(dt)
         # Track held keys during the pose, but resume movement only after it ends.
         dx = 0 if movement_locked else (
@@ -235,7 +242,19 @@ class Player:
 
     @property
     def current_images(self):
-        return self.images if self.has_blue else self.gray_images
+        return self.color_images.get(self.color, self.gray_images)
+
+    @property
+    def has_blue(self):
+        return self.color == 'blue'
+
+    @has_blue.setter
+    def has_blue(self, value):
+        self.color = 'blue' if value else None
+
+    @property
+    def controls_locked(self):
+        return self.interaction.active and not getattr(self.level, 'allow_moving_interaction', False)
 
     def start_interaction(self, color, extracting):
         self.interaction.start(color, extracting)
