@@ -15,12 +15,16 @@ from code.settings import SCREEN_HEIGHT, SCREEN_WIDTH
 from code.title import TitleScreen
 from code.loading import LoadingScreen
 from code.settings_menu import SettingsMenu
+from code.audio import MusicManager
 
 
 def main():
     pico2d.open_canvas(SCREEN_WIDTH, SCREEN_HEIGHT)
+    music = None
     try:
         configure_fullscreen()
+        music = MusicManager()
+        music.play('title')
         title = TitleScreen()
         loading = None
         settings_ui = None
@@ -39,6 +43,7 @@ def main():
                     continue
                 elif settings_open:
                     action = settings_ui.handle_event(event)
+                    music.set_volume(settings_ui.volumes['bgm'])
                     if action == 'quit':
                         running = False
                         break
@@ -46,6 +51,7 @@ def main():
                         settings_open = False
                         if action == 'title':
                             title = TitleScreen()
+                            music.play('title')
                             level = background = player = camera = colors = tutorial = None
                         previous = perf_counter()
                         dt = 0.0
@@ -102,6 +108,8 @@ def main():
                     previous = perf_counter()
                     dt = 0.0
                 loading.update(dt)
+                if loading.phase in ('in', 'done'):
+                    music.play('tutorial')
                 if loading.phase in ('out', 'loading'):
                     clear_canvas()
                     if loading.phase == 'out':
@@ -141,6 +149,8 @@ def main():
             pico2d.update_canvas()
             pico2d.delay(0.001)
     finally:
+        if music is not None:
+            music.close()
         pico2d.close_canvas()
 
 

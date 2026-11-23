@@ -51,7 +51,8 @@ class TitleTests(unittest.TestCase):
         with patch.multiple(main.pico2d, open_canvas=Mock(), close_canvas=Mock(),
                             get_events=Mock(return_value=[Event(type=pico2d.SDL_QUIT)])), \
              patch.object(main, 'configure_fullscreen'), \
-             patch.object(main, 'TitleScreen'), patch.object(main, 'Level') as level:
+             patch.object(main, 'TitleScreen'), patch.object(main, 'MusicManager'), \
+             patch.object(main, 'Level') as level:
             main.main()
         level.assert_not_called()
 

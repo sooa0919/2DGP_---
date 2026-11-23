@@ -232,6 +232,7 @@ class PlatformerTests(unittest.TestCase):
                        [SimpleNamespace(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_e)],
                        [SimpleNamespace(type=pico2d.SDL_QUIT)]])
         with patch.object(game, "Background", return_value=scene) as factory, \
+             patch.object(game, "MusicManager"), \
              patch.object(game, "LoadingScreen", return_value=Mock(needs_level=True, phase='done', done=True)), \
              patch.object(game, "TitleScreen", return_value=Mock(handle_event=Mock(return_value='new'))), \
              patch.object(game, "Tutorial", return_value=Mock(paused=False)), \

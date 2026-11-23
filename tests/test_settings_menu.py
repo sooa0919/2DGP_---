@@ -157,12 +157,14 @@ class SettingsMenuTests(unittest.TestCase):
         click = Event(type=pico2d.SDL_MOUSEBUTTONDOWN, button=1, x=180, y=278)
         esc = Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_ESCAPE)
         frames = iter([[click], [esc], [click], [click], [esc], [click]])
-        menu = Mock(handle_event=Mock(side_effect=['title', 'quit']))
+        menu = Mock(volumes={'bgm': 37, 'sfx': 80}, handle_event=Mock(side_effect=['title', 'quit']))
+        music = Mock()
         title = Mock(return_value=Mock(handle_event=Mock(return_value='new')))
         factory = Mock(return_value=Event(width=1792, height=672, is_tutorial=False))
         close = Mock()
         with patch.multiple(main, configure_fullscreen=Mock(), clear_canvas=Mock(),
                             TitleScreen=title, SettingsMenu=Mock(return_value=menu),
+                            MusicManager=Mock(return_value=music),
                             LoadingScreen=Mock(return_value=Mock(needs_level=True, phase='done', done=True)),
                             Level=factory, Player=Mock(return_value=Mock()),
                             Background=Mock(return_value=Mock()), Camera=Mock(return_value=Mock(x=0, y=0)),
@@ -172,6 +174,11 @@ class SettingsMenuTests(unittest.TestCase):
             main.main()
         self.assertEqual(title.call_count, 2)
         self.assertEqual(factory.call_count, 2)
+        self.assertEqual([call.args[0] for call in music.play.call_args_list],
+                         ['title', 'tutorial', 'title', 'tutorial'])
+        self.assertTrue(all(call.args == (37,) for call in music.set_volume.call_args_list))
+        self.assertEqual(music.set_volume.call_count, 2)
+        music.close.assert_called_once()
         close.assert_called_once()
 
     def test_main_opens_from_title_and_play_and_pauses_input_and_updates(self):
@@ -181,11 +188,11 @@ class SettingsMenuTests(unittest.TestCase):
         move = Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_d)
         frames = iter([[click], [move], [esc], [click], [esc], [move], [esc],
                        [Event(type=pico2d.SDL_QUIT)]])
-        menu = Mock(handle_event=Mock(side_effect=[None, 'close', None, 'close']))
+        menu = Mock(volumes={'bgm': 80, 'sfx': 80}, handle_event=Mock(side_effect=[None, 'close', None, 'close']))
         player, background, colors = Mock(), Mock(), Mock()
         with patch.multiple(main, configure_fullscreen=Mock(), clear_canvas=Mock(),
                             TitleScreen=Mock(return_value=Mock(handle_event=Mock(side_effect=['settings', 'new']))),
-                            SettingsMenu=Mock(return_value=menu),
+                            SettingsMenu=Mock(return_value=menu), MusicManager=Mock(),
                             LoadingScreen=Mock(return_value=Mock(needs_level=True, phase='done', done=True)),
                             Level=Mock(return_value=Event(width=1792, height=672, is_tutorial=False)),
                             Player=Mock(return_value=player), Background=Mock(return_value=background),
