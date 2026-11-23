@@ -5,6 +5,21 @@ from code.audio import MusicManager
 
 
 class MusicTests(unittest.TestCase):
+    def test_gameplay_effects_alternate_steps_and_follow_effects_volume(self):
+        sounds = [Mock(), Mock(), Mock()]
+        with patch('pico2d.load_wav', side_effect=sounds) as load, \
+             patch('pico2d.Mix_HaltChannel'):
+            music = MusicManager()
+            for _ in range(3):
+                music.play_effect('step')
+            self.assertEqual(load.call_count, 2)
+            self.assertEqual(sounds[0].play.call_count, 2)
+            self.assertEqual(sounds[1].play.call_count, 1)
+            music.play_effect('jump')
+            music.set_effects_volume(0)
+            for sound in sounds:
+                sound.set_volume.assert_called_with(0)
+            music.close()
     def test_click_sound_loads_once_uses_effects_volume_and_leaves_bgm_alone(self):
         bgm, click = Mock(), Mock()
         with patch('pico2d.load_music', return_value=bgm), \
