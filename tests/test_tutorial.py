@@ -62,11 +62,11 @@ class TutorialTests(unittest.TestCase):
 
     def test_camera_tracks_vertical_world_and_stops_at_edges(self):
         camera = Camera(1152, 4096, 1536)
-        camera.follow(*self.level.spawn)
+        camera.snap_to(*self.level.spawn)
         self.assertEqual((camera.x, camera.y), (0, 0))
-        camera.follow(2000, 1000)
+        camera.snap_to(2000, 1000)
         self.assertEqual(camera.y, 676)
-        camera.follow(4096, 1536)
+        camera.snap_to(4096, 1536)
         self.assertEqual(camera.y, 1536 - 648)
         self.assertEqual(camera.x, 4096 - 1152)
 
@@ -133,3 +133,33 @@ class TutorialTests(unittest.TestCase):
         self.player.enter_level(self.level)
         self.assertEqual(self.player.ignored_platforms, [])
         self.assertEqual(self.player.drop_serial, 0)
+
+    def test_head_key_icons_follow_camera_then_change_from_move_to_jump(self):
+        self.player.x, self.player.y = 400, 500
+        with patch('pico2d.draw_rectangle'):
+            self.ui.draw(self.level, self.player, self.colors, 200, 100)
+        calls = self.ui.keyboard.clip_draw.call_args_list
+        self.assertEqual(len(calls), 2)
+        self.assertEqual((calls[0].args[4] + calls[1].args[4]) / 2, 200)
+        self.assertGreater(calls[0].args[5], self.player.top - 100)
+        self.ui.update(0, self.level, self.player, self.colors)
+        self.ui.keyboard.clip_draw.reset_mock()
+        with patch('pico2d.draw_rectangle'):
+            self.ui.draw(self.level, self.player, self.colors, 200, 100)
+        self.ui.keyboard.clip_draw.assert_called_once()
+        self.assertEqual(self.ui.keyboard.clip_draw.call_args.args[0], 8 * 16)
+
+    def test_s_key_appears_only_on_thin_platform_and_finishes_on_successful_drop(self):
+        self.platform_room()
+        self.ui.moved = self.ui.jumped = True
+        with patch('pico2d.draw_rectangle'):
+            self.ui.draw(self.level, self.player, self.colors, 0)
+        self.ui.keyboard.clip_draw.assert_called_once()
+        self.assertEqual(self.ui.keyboard.clip_draw.call_args.args[1], self.ui.keyboard.h - 19 * 16)
+        self.key(pico2d.SDLK_s)
+        self.ui.update(.01, self.level, self.player, self.colors)
+        self.assertTrue(self.ui.fell)
+        self.ui.keyboard.clip_draw.reset_mock()
+        with patch('pico2d.draw_rectangle'):
+            self.ui.draw(self.level, self.player, self.colors, 0)
+        self.ui.keyboard.clip_draw.assert_not_called()

@@ -101,7 +101,7 @@ class PlatformerTests(unittest.TestCase):
         camera = Camera(SCREEN_WIDTH, WORLD_WIDTH)
         for target, expected in ((32, 0), (2000, 2000 - SCREEN_WIDTH / 2),
                                  (WORLD_WIDTH - 32, WORLD_WIDTH - SCREEN_WIDTH)):
-            camera.follow(target)
+            camera.snap_to(target)
             self.assertEqual(camera.x, expected)
 
     def test_forest_route_is_traversable_with_actual_jump_physics(self):

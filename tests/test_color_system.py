@@ -104,7 +104,6 @@ class BlueColorTests(unittest.TestCase):
         self.player.images["idle"] = Mock(w=512, h=128)
         self.player.gray_images["idle"] = Mock(w=512, h=128)
         self.click()
-        self.player.update(self.player.interaction.DURATION)
         self.player.draw(1900)
         self.player.gray_images["idle"].clip_composite_draw.assert_called_once()
         self.player.images["idle"].clip_composite_draw.assert_not_called()
@@ -132,7 +131,7 @@ class BlueColorTests(unittest.TestCase):
              patch.object(game, "TitleScreen", return_value=Mock(handle_event=Mock(return_value='new'))), \
              patch.object(game, "Player", return_value=self.player), \
              patch.object(game, "Background", return_value=Mock()), \
-             patch.object(game, "Camera", return_value=SimpleNamespace(x=1900, y=0, follow=lambda x, y: None)), \
+             patch.object(game, "Camera", return_value=SimpleNamespace(x=1900, y=0, follow=lambda x, y, dt: None)), \
              patch.object(game, "configure_fullscreen"), patch.object(game, "clear_canvas"), \
              patch.object(self.player, "draw"), \
              patch.multiple(pico2d, open_canvas=lambda *a: None, close_canvas=lambda: None,

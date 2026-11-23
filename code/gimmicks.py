@@ -8,13 +8,18 @@ from .level import Platform
 class Vine:
     left: float
     bottom: float
-    right: float
+    stem_right: float
     top: float
     unlock_stage: int
     name: str
     active: bool = False
     animation_time: float = 0.0
     required_color: str = 'green'
+    cap_right: float | None = None
+
+    @property
+    def right(self):
+        return self.cap_right if self.active and self.cap_right is not None else self.stem_right
 
     @property
     def stored_color(self):
@@ -26,7 +31,9 @@ class Vine:
 
     def leaves(self):
         heights = list(range(int(self.bottom) + 80, int(self.top), 80)) + [int(self.top)]
-        return [Platform(self.left, y - 8, self.right, y, one_way=True) for y in heights]
+        return [Platform(self.left, y - 8,
+                         self.cap_right if y == self.top and self.cap_right is not None else self.stem_right,
+                         y, one_way=True) for y in heights]
 
 
 @dataclass
@@ -51,18 +58,39 @@ class Lamp:
 
 
 @dataclass
+class FallingWaterGroup:
+    has_blue: bool = True
+
+
+@dataclass
 class FallingWater:
     left: float
     bottom: float
     right: float
     top: float
     initial_top: float
-    has_blue: bool = True
+    group: FallingWaterGroup | None = None
     animation_time: float = 0.0
     unlock_stage: int = 6
     required_color: str = 'blue'
     name: str = '떨어지는 물'
     speed: float = 100.0
+
+    def __post_init__(self):
+        if self.group is None:
+            self.group = FallingWaterGroup()
+
+    @property
+    def has_blue(self):
+        return self.group.has_blue
+
+    @has_blue.setter
+    def has_blue(self, value):
+        self.group.has_blue = value
+
+    @property
+    def color_owner(self):
+        return self.group
 
     @property
     def stored_color(self):

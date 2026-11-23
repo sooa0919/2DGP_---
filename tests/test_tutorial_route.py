@@ -73,6 +73,23 @@ class TutorialRouteTests(unittest.TestCase):
     def convert(self, key):
         self.colors.handle_event(Event(type=pico2d.SDL_KEYDOWN, key=key), self.level, self.player, 0)
 
+    def transfer_jump(self, old_vine, new_vine, target, floor):
+        self.direction(target)
+        self.key(pico2d.SDLK_SPACE, False)
+        self.key(pico2d.SDLK_SPACE)
+        for _ in range(6):
+            self.tick()
+        self.click(old_vine)
+        self.click(new_vine)
+        for _ in range(600):
+            self.direction(target)
+            self.tick()
+            if self.player.grounded:
+                break
+        self.key(pico2d.SDLK_SPACE, False)
+        self.assertAlmostEqual(self.player.bottom, floor, delta=1)
+        self.go(target)
+
     def test_full_blue_green_falling_water_yellow_exit_route(self):
         p, level = self.player, self.level
         self.assertIsNone(p.color)
@@ -104,18 +121,12 @@ class TutorialRouteTests(unittest.TestCase):
         self.go(2288)
         self.click(level.vines[1])
         self.climb(224)
-        self.jump(2376, 224)
         self.assertEqual(level.progress, 4)
-        self.click(level.vines[1])
-        self.go(2520)
-        self.click(level.vines[2])
-        self.jump(2624, 304)
-        self.jump(2728, 304)
+        self.go(2518)
+        self.transfer_jump(level.vines[1], level.vines[2], 2624, 304)
         self.assertEqual(level.progress, 5)
-        self.click(level.vines[2])
         self.go(2872)
-        self.click(level.vines[3])
-        self.jump(3000, 336)
+        self.transfer_jump(level.vines[2], level.vines[3], 3000, 336)
         self.climb(480)
         self.jump(3096, 480)
         self.assertEqual(level.progress, 6)

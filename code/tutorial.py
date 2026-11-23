@@ -1,23 +1,26 @@
 """Compact controls, color selection and guidance for the new puzzle route."""
+import math
 import pico2d
 
-from .settings import FONT_PATH, SCREEN_WIDTH, SCREEN_HEIGHT
+from .settings import FONT_PATH, IMAGE_ROOT, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
 HINTS = (
     '앞의 파랑 보석을 좌클릭하고, 물에 부여해 길을 통과하세요.',
     '물에서 색을 회수한 뒤 2번으로 초록 전환 · 첫 덩굴을 켜고 위로 올라가세요.',
     '첫 발판에서 색을 회수하고 점프로 길을 건넌 뒤, 얇은 발판에서 S로 내려가세요.',
-    '초록을 앞의 덩굴 1에 부여하고 첫 번째 쉼터로 올라가세요.',
-    '색을 회수해 덩굴 2를 켠 뒤 다음 쉼터로 건너가세요.',
-    '색을 회수해 덩굴 3을 켜고 높은 쉼터까지 올라가세요.',
-    '빈손으로 낙수의 파랑을 빼면 멈춥니다. 타이밍을 맞춰 고체 발판을 밟으세요.',
+    '덩굴 1을 켜고 올라가세요. 이 구간에서 떨어지면 처음부터 다시 시작해요.',
+    '점프 중 이전 색을 회수하고 덩굴 2에 부여해 건너가세요.',
+    '점프 중 색을 옮겨 덩굴 3을 켜고 위로 올라가세요.',
+    '빈손으로 낙수의 파랑을 빼면 전체가 멈춰요. 타이밍에 맞춰 밟으세요.',
     '낙수에서 얻은 색을 3번으로 노랑 전환 · 등불을 켜고 아래 문으로 나가세요.',
 )
 
 
 class Tutorial:
     def __init__(self):
+        self.keyboard = pico2d.load_image(str(
+            IMAGE_ROOT / 'ui/Controllers and Keyboard/Controllers and Keyboard/kb_light_all.png'))
         self.font = pico2d.load_font(str(FONT_PATH), 18)
         self.small = pico2d.load_font(str(FONT_PATH), 15)
         self.reset()
@@ -28,17 +31,52 @@ class Tutorial:
         self.paused = False
         self.complete = False
         self.message = None
+        self.time = 0.0
+        self.moved = False
+        self.jumped = False
+        self.fell = False
+        self.drop_serial = 0
 
     def handle_event(self, event, player):
         if event.type in (pico2d.SDL_MOUSEMOTION, pico2d.SDL_MOUSEBUTTONDOWN, pico2d.SDL_MOUSEBUTTONUP):
             self.mouse_pos = (event.x, SCREEN_HEIGHT - event.y)
-        elif event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_r:
-            self.reset()
+        elif event.type == pico2d.SDL_KEYDOWN:
+            if event.key == pico2d.SDLK_r:
+                self.reset()
+            elif event.key == pico2d.SDLK_SPACE and player.grounded:
+                self.jumped = True
+        elif event.type == pico2d.SDL_WINDOWEVENT and event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
+            self.mouse_pos = None
 
     def update(self, dt, level, player, colors):
+        self.time += dt
+        self.moved |= abs(player.x - level.spawn[0]) >= 24
+        if player.drop_serial != self.drop_serial:
+            self.drop_serial = player.drop_serial
+            self.fell = True
         self.complete = level.complete
 
+    def key_icon(self, col, row, x, y, width=40):
+        down = int(self.time * 3) % 2
+        self.keyboard.clip_draw((col + down) * 16, self.keyboard.h - (row + 1) * 16,
+                                16, 16, round(x), round(y - down * 3), width, 40)
+
+    def head_keys(self, player, camera_x, camera_y):
+        x = max(44, min(SCREEN_WIDTH - 44, player.x - camera_x))
+        size = player.RUN_DRAW_SIZE if player.state == 'run' else (
+            player.JUMP_DRAW_SIZE if player.state in ('jump', 'fall') else player.DRAW_SIZE)
+        y = min(SCREEN_HEIGHT - 72, player.bottom - camera_y + size + 22 + math.sin(self.time * 4) * 2)
+        if not self.moved:
+            self.key_icon(0, 0, x - 24, y)
+            self.key_icon(0, 3, x + 24, y)
+        elif not self.jumped:
+            self.key_icon(8, 8, x, y, 64)
+        elif not self.fell and player.drop_platforms:
+            self.key_icon(0, 18, x, y)
+
     def draw(self, level, player, colors, camera_x, camera_y=0):
+        if not self.complete:
+            self.head_keys(player, camera_x, camera_y)
         pico2d.draw_rectangle(14, 14, SCREEN_WIDTH - 14, 85, 14, 18, 22, 225, filled=True)
         hint = '튜토리얼 완료!  R: 다시 시작  /  ESC: 메뉴' if self.complete else HINTS[level.progress]
         self.font.draw(28, 66, hint, (239, 241, 239))

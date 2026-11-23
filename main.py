@@ -80,6 +80,8 @@ def main():
                         if tutorial.paused:
                             continue
                     colors.handle_event(event, level, player, camera.x, camera.y)
+                    if event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_r:
+                        camera.snap_to(player.x, player.y)
                     player.handle_event(event)
             if not running:
                 break
@@ -123,7 +125,7 @@ def main():
                 background.update(dt)
             if tutorial and loading is None and not settings_open:
                 tutorial.update(dt, level, player, colors)
-            camera.follow(player.x, player.y)
+            camera.follow(player.x, player.y, dt)
             clear_canvas()
             background.draw(camera.x, camera.y)
             player.draw(camera.x, camera.y)

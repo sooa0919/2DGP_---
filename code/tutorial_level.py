@@ -1,7 +1,7 @@
 """Forest blockout following previews/ex.png's left-to-right puzzle route."""
 from .level import Level, Platform, Water, ConnectedWater
 from .diamond import Diamond
-from .gimmicks import Vine, Lamp, FallingWater
+from .gimmicks import Vine, Lamp, FallingWater, FallingWaterGroup
 
 
 class TutorialLevel(Level):
@@ -9,7 +9,6 @@ class TutorialLevel(Level):
     gimmicks_enabled = True
     show_color_messages = False
     starting_blue = False
-    allow_moving_interaction = True
 
     def __init__(self):
         self.name = '색의 숲'
@@ -23,8 +22,7 @@ class TutorialLevel(Level):
             (0, 816, 320, 1008),
             (960, 96, 1184, 480), (1344, 96, 1464, 224),
             (1584, 96, 1704, 224), (1824, 96, 2008, 304),
-            (2368, 216, 2528, 224), (2720, 296, 2880, 304),
-            (3088, 472, 3248, 480), (3616, 592, 3808, 600),
+            (3616, 592, 3808, 600),
         )]
         self.thin_platforms = [Platform(2008, 216, 2176, 224, one_way=True)]
         gate = Water(320, 96, 384, 816, is_waterfall=True)
@@ -34,7 +32,10 @@ class TutorialLevel(Level):
                       Vine(2240, 96, 2336, 224, 3, '덩굴 1'),
                       Vine(2576, 96, 2672, 304, 4, '덩굴 2'),
                       Vine(2944, 96, 3056, 480, 5, '덩굴 3')]
-        self.droplets = [FallingWater(3328, top - 80, 3552, top, top)
+        for vine, right in zip(self.vines[1:], (2528, 2880, 3248)):
+            vine.cap_right = right
+        group = FallingWaterGroup()
+        self.droplets = [FallingWater(3328, top - 80, 3552, top, top, group)
                          for top in (932, 712, 492, 272)]
         self.lamp = Lamp(3712, 600, 3760, 672)
         self.door = Platform(3936, 96, 3984, 704)
@@ -61,6 +62,7 @@ class TutorialLevel(Level):
         self.progress = 0
         self.gate_opened = False
         self.complete = False
+        self.vine_attempt_started = False
 
     def update(self, dt, player):
         for source in self.color_sources:
@@ -71,9 +73,9 @@ class TutorialLevel(Level):
         if self.progress == 0 and self.gate_opened and player.x >= 680:
             self.progress = 1
         milestones = ((1, 960, 1184, 480, 2),
-                      (3, 2368, 2528, 224, 4),
-                      (4, 2720, 2880, 304, 5),
-                      (5, 3088, 3248, 480, 6))
+                      (3, 2240, 2528, 224, 4),
+                      (4, 2576, 2880, 304, 5),
+                      (5, 2944, 3248, 480, 6))
         for stage, left, right, floor, next_stage in milestones:
             if (self.progress == stage and player.grounded and left <= player.x <= right
                     and abs(player.bottom - floor) < 1):
@@ -84,6 +86,11 @@ class TutorialLevel(Level):
                 d.solid and d.left <= player.x <= d.right and player.grounded
                 and abs(player.bottom - d.top) < 1 for d in self.droplets):
             self.progress = 7
+        if 3 <= self.progress <= 6 and 2200 <= player.x < 3616:
+            self.vine_attempt_started |= player.bottom > 144
+            if self.vine_attempt_started and player.grounded and player.bottom <= 97:
+                player.enter_level(self)
+                return
         self.complete = self.complete or self.at_end(player)
 
     def at_end(self, player):

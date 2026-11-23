@@ -51,7 +51,6 @@ class ColorSystem:
         elif event.type == pico2d.SDL_KEYDOWN and event.key in (pico2d.SDLK_1, pico2d.SDLK_2, pico2d.SDLK_3):
             if player.color is not None:
                 player.color = {pico2d.SDLK_1: 'blue', pico2d.SDLK_2: 'green', pico2d.SDLK_3: 'yellow'}[event.key]
-                player.interaction.reset()
                 self.notice = ''
             else:
                 self.notice = '색을 먼저 회수하세요.'
@@ -88,7 +87,9 @@ class ColorSystem:
         pool.animation_time = 0.0
         is_source = any(pool is source for source in getattr(level, 'color_sources', []))
         if pool in getattr(level, 'droplets', []) and pool.solid:
-            player.resolve_solid_water(pool)
+            for part in level.droplets:
+                if part.color_owner is pool.color_owner:
+                    player.resolve_solid_water(part)
         elif not is_source and pool in level.water and pool.solid:
             for part in level.water:
                 if part.color_owner is pool.color_owner:
@@ -98,5 +99,4 @@ class ColorSystem:
             'reclaim' if extracting else 'give')
         self.last_transfer = (color, action)
         self.notice = ''
-        player.start_interaction(color, extracting=extracting)
         return True

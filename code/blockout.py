@@ -43,7 +43,7 @@ class ForestBlockout:
             self.box(p, camera_x, camera_y, (154, 158, 161))
         for vine in self.level.vines:
             color = COLORS['green'] if vine.active else (157, 166, 159)
-            center = (vine.left + vine.right) / 2 - camera_x
+            center = (vine.left + vine.stem_right) / 2 - camera_x
             height = vine.top if vine.active else vine.bottom + 28
             if -128 < center < SCREEN_WIDTH + 128:
                 pico2d.draw_rectangle(round(center - 5), round(vine.bottom - camera_y),

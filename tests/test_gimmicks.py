@@ -50,7 +50,7 @@ class GimmickTests(unittest.TestCase):
         self.assertFalse(vine.active)
         self.assertTrue(all(leaf not in self.level.collision_platforms() for leaf in vine.leaves()))
 
-    def test_blue_falls_move_and_extraction_freezes_only_clicked_block(self):
+    def test_blue_extraction_freezes_all_falling_blocks_and_return_resumes_them(self):
         drop = self.level.droplets[1]
         self.level.progress = 6
         self.player.x, self.player.y = drop.left - 60, drop.top - 40
@@ -66,9 +66,11 @@ class GimmickTests(unittest.TestCase):
         moving = self.level.droplets[0].top
         self.level.update(.5, self.player)
         self.assertEqual(drop.top, frozen)
-        self.assertNotEqual(self.level.droplets[0].top, moving)
+        self.assertEqual(self.level.droplets[0].top, moving)
+        self.assertTrue(all(d.solid for d in self.level.droplets))
         self.assertTrue(self.colors.interact_at(drop.left + 1, self.player.y, self.level, self.player))
         self.assertFalse(drop.solid)
+        self.assertTrue(all(d.has_blue for d in self.level.droplets))
         self.level.update(.1, self.player)
         self.assertAlmostEqual(drop.top, frozen - 10)
 
@@ -115,3 +117,35 @@ class GimmickTests(unittest.TestCase):
         self.level.update(.1, self.player)
         self.assertEqual(self.level.progress, 0)
         self.assertFalse(self.colors.interact_at(self.player.x, self.player.y, self.level, self.player))
+
+    def test_falling_from_the_vine_run_resets_the_whole_level(self):
+        self.level.progress = 4
+        self.level.vines[1].active = True
+        self.player.color = None
+        self.player.x, self.player.y = 2400, 224 + self.player.FOOT_OFFSET
+        self.level.update(0, self.player)
+        self.assertTrue(self.level.vine_attempt_started)
+        self.assertFalse(any(p.top == 224 and p.left <= 2400 < p.right for p in self.level.platforms))
+        self.level.vines[1].active = False
+        self.player.grounded = False
+        for _ in range(120):
+            self.player.update(1 / 120)
+            self.level.update(1 / 120, self.player)
+            if self.level.progress == 0:
+                break
+        self.assertEqual(self.level.progress, 0)
+        self.assertEqual(self.player.x, self.level.spawn[0])
+        self.assertIsNone(self.player.color)
+        self.assertTrue(self.level.color_sources[0].has_blue)
+
+    def test_transfer_does_not_interrupt_running_or_jumping(self):
+        self.player.keys.add(pico2d.SDLK_d)
+        self.player.update(.05)
+        source = self.level.color_sources[0]
+        self.assertTrue(self.colors.interact_at(source.x, source.y, self.level, self.player))
+        x = self.player.x
+        self.player.update(.05)
+        self.assertGreater(self.player.x, x)
+        self.assertEqual(self.player.state, 'run')
+        self.player.handle_event(Event(type=pico2d.SDL_KEYDOWN, key=pico2d.SDLK_SPACE))
+        self.assertFalse(self.player.grounded)

@@ -1,7 +1,6 @@
 import pico2d
 
 from .settings import GROUND_HEIGHT, IMAGE_ROOT, SCREEN_HEIGHT, WORLD_WIDTH
-from .interaction import InteractionAnimation
 
 
 class Player:
@@ -46,7 +45,6 @@ class Player:
                 for state in ('idle', 'run', 'jump')}
             sheets['fall'] = sheets['jump']
             self.color_images[color] = sheets
-        self.interaction = InteractionAnimation()
         self.has_blue = getattr(level, 'starting_blue', False)
         self.x = 200.0
         self.y = GROUND_HEIGHT + self.DRAW_SIZE / 2
@@ -64,9 +62,9 @@ class Player:
             if event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
                 self.keys.clear()
         elif event.type == pico2d.SDL_KEYDOWN and event.key in self.MOVEMENT_KEYS:
-            if not self.controls_locked and event.key == pico2d.SDLK_s and event.key not in self.keys:
+            if event.key == pico2d.SDLK_s and event.key not in self.keys:
                 self.drop_through()
-            if (not self.controls_locked and event.key == pico2d.SDLK_SPACE
+            if (event.key == pico2d.SDLK_SPACE
                     and event.key not in self.keys and self.grounded):
                 self.velocity_y = self.JUMP_SPEED
                 self.grounded = False
@@ -75,11 +73,7 @@ class Player:
             self.keys.discard(event.key)
 
     def update(self, dt):
-        movement_locked = self.controls_locked
-        self.interaction.update(dt)
-        # Track held keys during the pose, but resume movement only after it ends.
-        dx = 0 if movement_locked else (
-            int(pico2d.SDLK_d in self.keys) - int(pico2d.SDLK_a in self.keys))
+        dx = int(pico2d.SDLK_d in self.keys) - int(pico2d.SDLK_a in self.keys)
         if self.level is not None:
             remaining = dt
             while remaining > 1e-9:
@@ -115,7 +109,6 @@ class Player:
         self.keys.clear()
         self.ignored_platforms.clear()
         self.drop_serial = 0
-        self.interaction.reset()
 
     @property
     def drop_platforms(self):
@@ -220,9 +213,6 @@ class Player:
         self.frame = start + (self.frame - start + self.ANIMATION_FPS[state] * dt) % (end - start)
 
     def draw(self, camera_x, camera_y=0):
-        if self.interaction.active:
-            self.interaction.draw(self.x - camera_x, self.bottom - camera_y, self.facing)
-            return
         image = self.current_images[self.state]
         columns = image.w // self.SIZE
         row, column = divmod(int(self.frame), columns)
@@ -251,13 +241,6 @@ class Player:
     @has_blue.setter
     def has_blue(self, value):
         self.color = 'blue' if value else None
-
-    @property
-    def controls_locked(self):
-        return self.interaction.active and not getattr(self.level, 'allow_moving_interaction', False)
-
-    def start_interaction(self, color, extracting):
-        self.interaction.start(color, extracting)
 
     def resolve_solid_water(self, pool):
         if (self.right > pool.left and self.left < pool.right
