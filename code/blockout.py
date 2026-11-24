@@ -1,5 +1,6 @@
 """Forest backdrop with simple rectangular terrain and color devices."""
 import pico2d
+from .display import load_pixel_image
 
 from .settings import FONT_PATH, IMAGE_ROOT, SCREEN_WIDTH, SCREEN_HEIGHT
 from .diamond import DiamondRenderer
@@ -13,7 +14,7 @@ class ForestBlockout:
     def __init__(self, level):
         self.level = level
         folder = IMAGE_ROOT / 'background/grayscale/background3_jungle2'
-        self.layers = [pico2d.load_image(str(folder / f'plx-{i}.png')) for i in range(1, 6)]
+        self.layers = [load_pixel_image(str(folder / f'plx-{i}.png')) for i in range(1, 6)]
         self.diamonds = DiamondRenderer()
         self.tiles = TerrainArt()
         self.font = pico2d.load_font(str(FONT_PATH), 16)

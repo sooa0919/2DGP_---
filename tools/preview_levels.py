@@ -21,13 +21,15 @@ class Sprite:
         self.image = Image.open(path).convert("RGBA")
         self.w, self.h = self.image.size
         self.opacity = 1.0
+        self.pixel_art = ('character' in str(path) or 'Controllers and Keyboard' in str(path)
+                          or 'background/grayscale' in str(path).replace('\\', '/'))
 
     def opacify(self, opacity):
         self.opacity = opacity
 
     def draw(self, x, y, w=None, h=None):
         w, h = round(w or self.w), round(h or self.h)
-        bitmap = self.image.resize((w, h), Image.Resampling.NEAREST)
+        bitmap = self.image.resize((w, h), Image.Resampling.NEAREST if self.pixel_art else Image.Resampling.LANCZOS)
         if self.opacity != 1.0:
             bitmap.putalpha(bitmap.getchannel("A").point(lambda v: round(v * self.opacity)))
         canvas.paste(bitmap, (round(x - w / 2), round(648 - y - h / 2)), bitmap)

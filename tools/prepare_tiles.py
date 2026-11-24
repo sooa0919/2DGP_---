@@ -19,19 +19,19 @@ def main():
     folder.mkdir(exist_ok=True)
     for index in range(8):
         x = 51 + index * 100
-        dirt = sheet.crop((x + 5, 58, x + 79, 132)).resize((64, 64), Image.Resampling.LANCZOS)
-        grass = matte(sheet.crop((x, 192, x + 87, 277))).resize((64, 64), Image.Resampling.LANCZOS)
-        stone = sheet.crop((x + 5, 366 if index in (5, 6) else 338, x + 79, 407)).resize((64, 64), Image.Resampling.LANCZOS)
+        dirt = sheet.crop((x + 5, 58, x + 79, 132)).resize((128, 128), Image.Resampling.LANCZOS)
+        grass = matte(sheet.crop((x, 192, x + 87, 277))).resize((128, 128), Image.Resampling.LANCZOS)
+        stone = sheet.crop((x + 5, 366 if index in (5, 6) else 338, x + 79, 407)).resize((128, 128), Image.Resampling.LANCZOS)
         for name, tile in (('dirt', dirt), ('grass', grass), ('stone', stone)):
             gray = ImageOps.grayscale(tile).convert('RGBA')
             gray.putalpha(tile.getchannel('A'))
             gray.save(folder / f'{name}_{index}.png')
     for frame, y in enumerate((591, 643, 694)):
-        tile = sheet.crop((111, y, 173, y + 46)).resize((64, 48), Image.Resampling.LANCZOS)
+        tile = sheet.crop((111, y, 173, y + 46)).resize((128, 96), Image.Resampling.LANCZOS)
         tile.save(folder / f'water_{frame}.png')
         if frame == 0:
             ImageOps.grayscale(tile).convert('RGBA').save(folder / 'water_gray.png')
-    cap = matte(sheet.crop((51, 192, 138, 222))).resize((64, 20), Image.Resampling.LANCZOS)
+    cap = matte(sheet.crop((51, 192, 138, 222))).resize((128, 40), Image.Resampling.LANCZOS)
     green = ImageOps.colorize(ImageOps.grayscale(cap), (22, 64, 32), (115, 213, 118)).convert('RGBA')
     green.putalpha(cap.getchannel('A'))
     green.save(folder / 'vine_cap.png')

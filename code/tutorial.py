@@ -1,27 +1,15 @@
 """Compact controls, color selection and guidance for the new puzzle route."""
 import math
 import pico2d
+from .display import load_pixel_image
 
 from .settings import FONT_PATH, IMAGE_ROOT, SCREEN_WIDTH, SCREEN_HEIGHT
 
 
-HINTS = (
-    '앞의 파랑 보석을 좌클릭하고, 물에 부여해 길을 통과하세요.',
-    '물에서 색을 회수한 뒤 2번으로 초록 전환 · 첫 덩굴을 켜고 위로 올라가세요.',
-    '첫 발판에서 색을 회수하고 점프로 길을 건넌 뒤, 얇은 발판에서 S로 내려가세요.',
-    '덩굴 1을 켜고 올라가세요. 점프하면서 다음 덩굴로 색을 옮기세요.',
-    '점프 중 이전 색을 회수하고 덩굴 2에 부여해 건너가세요.',
-    '점프 중 색을 옮겨 덩굴 3으로 건너가세요. 아래에서는 올라갈 수 없어요.',
-    '빈손으로 낙수의 파랑을 빼면 전체가 멈춰요. 타이밍에 맞춰 밟으세요.',
-    '낙수에서 얻은 색을 3번으로 노랑 전환 · 등불을 켜고 아래 문으로 나가세요.',
-)
-
-
 class Tutorial:
     def __init__(self):
-        self.keyboard = pico2d.load_image(str(
+        self.keyboard = load_pixel_image(str(
             IMAGE_ROOT / 'ui/Controllers and Keyboard/Controllers and Keyboard/kb_light_all.png'))
-        self.font = pico2d.load_font(str(FONT_PATH), 18)
         self.small = pico2d.load_font(str(FONT_PATH), 15)
         self.reset()
 
@@ -77,11 +65,6 @@ class Tutorial:
     def draw(self, level, player, colors, camera_x, camera_y=0):
         if not self.complete:
             self.head_keys(player, camera_x, camera_y)
-        pico2d.draw_rectangle(14, 14, SCREEN_WIDTH - 14, 85, 14, 18, 22, 225, filled=True)
-        hint = '튜토리얼 완료!  R: 다시 시작  /  ESC: 메뉴' if self.complete else HINTS[level.progress]
-        self.font.draw(28, 66, hint, (239, 241, 239))
-        self.small.draw(28, 35, 'A/D 이동   SPACE 점프   S 얇은 발판 내려가기   좌클릭 부여/회수   R 초기화',
-                        (202, 210, 216))
         for index, (color, label, rgb) in enumerate((('blue', '1 파랑', (68, 170, 235)),
                                                      ('green', '2 초록', (75, 195, 110)),
                                                      ('yellow', '3 노랑', (245, 212, 90)))):

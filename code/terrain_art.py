@@ -41,7 +41,8 @@ class TerrainArt:
                     self.cell(self.images[f'grass_{variant}'], left, top, width, height, camera_x, camera_y)
 
     def cell(self, image, left, top, width, height, camera_x, camera_y):
-        image.clip_draw(0, image.h - height, width, height,
+        scale = image.w / self.SIZE
+        image.clip_draw(0, image.h - round(height * scale), round(width * scale), round(height * scale),
                         left + width / 2 - camera_x, top - height / 2 - camera_y, width, height)
 
     def ledge(self, p, camera_x, camera_y):
@@ -59,7 +60,7 @@ class TerrainArt:
             width = min(64, p.right - x)
             if x + width >= camera_x and x <= camera_x + SCREEN_WIDTH:
                 image = self.images['vine_cap']
-                image.clip_draw(0, 0, width, image.h, x + width / 2 - camera_x,
+                image.clip_draw(0, 0, round(width * image.w / 64), image.h, x + width / 2 - camera_x,
                                 p.top - 6 - camera_y, width, 12)
 
     def water(self, item, camera_x, camera_y, time, vertical=False):
@@ -86,7 +87,7 @@ class TerrainArt:
                 if top == item.top:
                     self.cell(image, x, top, width, height, camera_x, camera_y)
                 else:
-                    image.clip_draw(0, 0, width, 18, x + width / 2 - camera_x,
+                    image.clip_draw(0, 0, round(width * image.w / 64), round(18 * image.w / 64), x + width / 2 - camera_x,
                                     top - height / 2 - camera_y, width, height)
 
     def lamp(self, item, camera_x, camera_y):

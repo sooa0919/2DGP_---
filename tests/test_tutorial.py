@@ -117,10 +117,10 @@ class TutorialTests(unittest.TestCase):
         self.assertEqual(self.player.drop_serial, 0)
 
     def test_new_guidance_and_color_selector_draw_without_pausing(self):
-        with patch('pico2d.draw_rectangle'):
+        with patch('pico2d.draw_rectangle') as draw:
             self.ui.draw(self.level, self.player, self.colors, 0)
-        self.ui.font.draw.assert_called()
-        self.assertGreaterEqual(self.ui.small.draw.call_count, 5)
+        self.assertTrue(all(call.args[1] > 85 for call in draw.call_args_list))
+        self.assertEqual(self.ui.small.draw.call_count, 4)
         self.assertFalse(self.ui.paused)
         self.ui.mouse_pos = (100, 100)
         self.key(pico2d.SDLK_r)

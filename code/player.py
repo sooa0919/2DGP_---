@@ -1,4 +1,5 @@
 import pico2d
+from .display import load_pixel_image
 
 from .settings import GROUND_HEIGHT, IMAGE_ROOT, SCREEN_HEIGHT, WORLD_WIDTH
 
@@ -26,21 +27,21 @@ class Player:
     def __init__(self, level=None):
         self.level = level
         self.images = {
-            state: pico2d.load_image(
+            state: load_pixel_image(
                 str(IMAGE_ROOT / "character" / state / f"{state}_blue.png")
             )
             for state in ("idle", "run", "jump")
         }
         self.gray_images = {
-            "idle": pico2d.load_image(str(IMAGE_ROOT / "character" / "idle" / "idle_gray.png")),
-            "run": pico2d.load_image(str(IMAGE_ROOT / "character" / "run" / "run_grey.png")),
-            "jump": pico2d.load_image(str(IMAGE_ROOT / "character" / "jump" / "jump_grey.png")),
+            "idle": load_pixel_image(str(IMAGE_ROOT / "character" / "idle" / "idle_gray.png")),
+            "run": load_pixel_image(str(IMAGE_ROOT / "character" / "run" / "run_grey.png")),
+            "jump": load_pixel_image(str(IMAGE_ROOT / "character" / "jump" / "jump_grey.png")),
         }
         self.images["fall"] = self.images["jump"]
         self.gray_images["fall"] = self.gray_images["jump"]
         self.color_images = {'blue': self.images}
         for color in ('green', 'yellow'):
-            sheets = {state: pico2d.load_image(str(
+            sheets = {state: load_pixel_image(str(
                 IMAGE_ROOT / 'character' / state / f'{state}_{color}.png'))
                 for state in ('idle', 'run', 'jump')}
             sheets['fall'] = sheets['jump']
