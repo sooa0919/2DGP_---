@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageChops, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 STAGE_SIZE = (4096, 1008)
@@ -65,8 +65,21 @@ def main():
         save(name, sheets['color_system'], bounds)
     ceiling_bounds = (3850, 515, 3935, 610)
     save('source_ceiling', stage, ceiling_bounds)
-    for name in ('color_system', 'water1', 'water_tile'):
+    for name in ('color_system', 'water3', 'water2', 'water1', 'water_tile'):
         stage = remove_layer(stage, sheets[name])
+    # The preview can contain edges from several waterfall frames. Strip the
+    # complete footprint of every frame, including antialiased fringe pixels,
+    # so the static background never shows another frame behind the live one.
+    water_mask = Image.new('L', STAGE_SIZE)
+    for name in ('water1', 'water2', 'water3', 'water_tile'):
+        water_mask = ImageChops.lighter(water_mask, sheets[name].getchannel('A'))
+    # Resampling the assembled preview can leave a few faint pixels just
+    # outside the separately resampled frames. Include that narrow fringe.
+    water_mask = water_mask.filter(ImageFilter.MaxFilter(9))
+    device_mask = sheets['color_system'].getchannel('A').filter(ImageFilter.MaxFilter(3))
+    moving_mask = ImageChops.lighter(water_mask, device_mask)
+    keep = moving_mask.point(lambda alpha: 0 if alpha else 255)
+    stage.putalpha(ImageChops.multiply(stage.getchannel('A'), keep))
     # Restore decoration hidden behind opaque moving devices (notably the
     # tree canopy behind the elevator). Never bake the old platform back in.
     stage = Image.alpha_composite(sheets['object'], stage)

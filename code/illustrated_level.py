@@ -37,6 +37,7 @@ class IllustratedLevel(Level):
                        for i, bounds in enumerate(((1510, 143, 1705, 218),
                             (1830, 143, 2030, 218), (2135, 143, 2330, 218),
                             (2395, 553, 2590, 633)))]
+        self.thin_platforms = [leaf.platform() for leaf in self.leaves]
         # Temporary green climbing devices bridge the tall sections while
         # retaining the original jump physics. Their art is deliberately simple.
         self.vines = [Vine(550, 75, 630, 438, 0, '임시 덩굴 1'),
@@ -56,11 +57,10 @@ class IllustratedLevel(Level):
 
     @property
     def devices(self):
-        return self.leaves + self.vines + [self.upper_lamp, self.elevator_switch]
+        return self.vines + [self.upper_lamp, self.elevator_switch]
 
     def dynamic_platforms(self):
         result = [self.elevator.platform()]
-        result += [leaf.platform() for leaf in self.leaves if leaf.active]
         result += [leaf for vine in self.vines if vine.active for leaf in vine.leaves()]
         for water in self.water:
             if water.solid:
@@ -77,7 +77,7 @@ class IllustratedLevel(Level):
         for col in range(int(left) // 128, int(right) // 128 + 1):
             for p in self._bins.get(col, ()):
                 result[p] = p
-        return list(result.values()) + [p for p in self.dynamic_platforms()
+        return list(result.values()) + [p for p in self.thin_platforms + self.dynamic_platforms()
                                        if p.right >= left and p.left <= right]
 
     def reset(self):

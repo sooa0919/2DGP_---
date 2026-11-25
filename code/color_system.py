@@ -5,7 +5,7 @@ from .settings import SCREEN_HEIGHT, SCREEN_WIDTH
 
 
 class ColorSystem:
-    INTERACTION_RADIUS = 110
+    INTERACTION_RADIUS = 140
 
     def __init__(self):
         self.left_down = False

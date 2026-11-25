@@ -57,7 +57,10 @@ class IllustratedStageTests(unittest.TestCase):
             self.assertTrue(draw.call_args_list[0].kwargs['gray'])
             fall.has_blue = True
             for expected in ('water1', 'water2', 'water3', 'water1'):
+                draw.reset_mock()
                 art.draw_devices(0, 0)
+                self.assertEqual([c.args[0] for c in draw.call_args_list
+                                  if c.args[0].startswith('water')], [expected])
                 water_call = [c for c in draw.call_args_list if c.args[0].startswith('water')][-1]
                 self.assertEqual(water_call.args[0], expected)
                 self.level.update(.22, self.player)
@@ -118,7 +121,7 @@ class IllustratedStageTests(unittest.TestCase):
             self.assertFalse(any(c.args[0].startswith('water') for c in sprites.call_args_list))
             bg.draw_overlay(0, self.player)
             water = [c for c in sprites.call_args_list if c.args[0].startswith('water')][-1]
-            self.assertEqual(water.kwargs['opacity'], .45)
+            self.assertEqual(water.kwargs['opacity'], .3)
             self.assertFalse(water.kwargs['gray'])
             self.level.water[0].has_blue = False
             bg.draw_overlay(0, self.player)
@@ -126,15 +129,43 @@ class IllustratedStageTests(unittest.TestCase):
             self.assertEqual(water.kwargs['opacity'], 1.0)
             self.assertTrue(water.kwargs['gray'])
 
-    def test_leaf_visuals_and_collision_toggle_together(self):
+    def test_horizontal_vines_are_always_one_way_platforms(self):
         leaf = self.level.leaves[0]
-        self.player.x, self.player.y = leaf.left + 20, leaf.top + 15
-        self.player.color = 'green'
-        self.assertNotIn(leaf.platform(), self.level.collision_platforms())
-        self.assertTrue(self.colors.interact_at(leaf.left + 20, leaf.top - 20, self.level, self.player))
-        self.assertIn(leaf.platform(), self.level.collision_platforms())
-        self.assertTrue(self.colors.interact_at(leaf.left + 20, leaf.top - 20, self.level, self.player))
-        self.assertNotIn(leaf.platform(), self.level.collision_platforms())
+        platform = leaf.platform()
+        self.assertIn(platform, self.level.collision_platforms())
+        self.assertIn(platform, self.level.collision_platforms_near(leaf.left, leaf.right))
+        self.assertNotIn(leaf, self.level.devices)
+        self.player.x = (platform.left + platform.right) / 2
+        self.player.y = platform.top - 60 + self.player.FOOT_OFFSET
+        self.player.grounded = False
+        self.player.velocity_y = self.player.JUMP_SPEED
+        self.tick(.8)
+        self.assertTrue(self.player.grounded)
+        self.assertAlmostEqual(self.player.bottom, platform.top)
+        self.player.drop_through()
+        self.tick(.7)
+        self.assertLess(self.player.bottom, platform.bottom)
+        self.assertTrue(self.player.grounded)
+
+    def test_color_exchange_reaches_140_pixels_but_not_farther(self):
+        source = self.level.color_sources[0]
+        self.player.x, self.player.y = source.x - 130, source.y
+        self.assertIs(self.colors.target_at(source.x, source.y, self.level, self.player), source)
+        self.assertTrue(self.colors.interact_at(source.x, source.y, self.level, self.player))
+        self.player.x = source.x - 141
+        self.assertIsNone(self.colors.target_at(source.x, source.y, self.level, self.player))
+        self.assertFalse(self.colors.interact_at(source.x, source.y, self.level, self.player))
+
+    def test_elevator_rope_and_platform_move_as_one_image(self):
+        with patch('pico2d.load_image', return_value=Mock(w=1024, h=1008)):
+            art = StageArt(self.level)
+        self.level.elevator.top += 250
+        with patch.object(art, 'sprite') as draw, patch('pico2d.draw_rectangle'):
+            art.draw_devices(2944, 200)
+            calls = {call.args[0]: call for call in draw.call_args_list}
+            self.assertEqual(calls['ropes'].kwargs['offset'], 250)
+            self.assertEqual(calls['elevator'].kwargs['offset'], 250)
+            self.assertNotIn('trim_bottom', calls['ropes'].kwargs)
 
     def test_elevator_switch_raises_rider_and_reclaim_returns_it(self):
         lift = self.level.elevator

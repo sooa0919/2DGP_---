@@ -65,7 +65,7 @@ class StageArt:
         if include_water:
             self.draw_water(camera_x, camera_y)
         for i, leaf in enumerate(level.leaves):
-            self.sprite(f'leaf_{i}', camera_x, camera_y, gray=not leaf.active)
+            self.sprite(f'leaf_{i}', camera_x, camera_y, gray=True)
         self.draw_temporary_vines(camera_x, camera_y)
         for source in level.color_sources:
             if getattr(source, 'sprite_name', None):
@@ -76,7 +76,7 @@ class StageArt:
         if not level.door_switch.active:
             self.sprite('door', camera_x, camera_y)
         self.sprite('ropes', camera_x, camera_y, gray=not level.elevator_switch.active,
-                    trim_bottom=level.elevator.top + 6)
+                    offset=level.elevator.offset)
         self.sprite('elevator', camera_x, camera_y, gray=not level.elevator_switch.active,
                     offset=level.elevator.offset)
 
@@ -84,9 +84,9 @@ class StageArt:
         fall, pool = self.level.water
         frame = int((fall.animation_time + 1e-9) / .22) % 3 + 1 if fall.has_blue else 1
         self.sprite(f'water{frame}', camera_x, camera_y, gray=not fall.has_blue,
-                    opacity=.45 if fall.has_blue else 1.0)
+                    opacity=.3 if fall.has_blue else 1.0)
         self.sprite('pool', camera_x, camera_y, gray=not pool.has_blue,
-                    opacity=.45 if pool.has_blue else 1.0)
+                    opacity=.3 if pool.has_blue else 1.0)
 
     def draw_temporary_vines(self, camera_x, camera_y):
         for vine in self.level.vines:

@@ -13,6 +13,12 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class StageArtTests(unittest.TestCase):
+    def test_static_background_contains_no_baked_waterfall_frames(self):
+        with Image.open(ROOT / 'image/background/stage1/stage_0.png') as chunk:
+            # Mid-air waterfall section: all three frame silhouettes must be
+            # absent, including their thin antialiased edge remnants.
+            self.assertEqual(chunk.crop((300, 350, 390, 500)).getchannel('A').getextrema(), (0, 0))
+
     def test_background_chunks_are_gray_and_keep_transparency(self):
         for i in range(4):
             with Image.open(ROOT / f'image/background/stage1/stage_{i}.png') as chunk:
