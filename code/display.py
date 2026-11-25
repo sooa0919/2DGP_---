@@ -28,3 +28,12 @@ def load_pixel_image(path):
     if isinstance(image, pico2d.Image):
         sdl.SDL_SetTextureScaleMode(image.texture, sdl.SDL_ScaleModeNearest)
     return image
+
+
+def load_smooth_image(path):
+    """Use linear sampling for antialiased illustration and animation textures."""
+    import pico2d
+    image = pico2d.load_image(path)
+    if isinstance(image, pico2d.Image):
+        sdl.SDL_SetTextureScaleMode(image.texture, sdl.SDL_ScaleModeLinear)
+    return image
