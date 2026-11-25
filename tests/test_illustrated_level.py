@@ -158,6 +158,36 @@ class IllustratedStageTests(unittest.TestCase):
         self.assertIsNone(self.colors.target_at(source.x, source.y, self.level, self.player))
         self.assertFalse(self.colors.interact_at(source.x, source.y, self.level, self.player))
 
+    def test_all_three_low_vine_platforms_are_reachable_from_ground(self):
+        for fps in (30, 60, 120):
+            for leaf in self.level.leaves[:3]:
+                with self.subTest(fps=fps, platform=leaf.name):
+                    self.player.enter_level(self.level)
+                    platform = leaf.platform()
+                    self.player.x = (platform.left + platform.right) / 2
+                    self.player.y = 110 + self.player.FOOT_OFFSET
+                    self.player.grounded = False
+                    for _ in range(fps // 2):
+                        self.player.update(1 / fps)
+                        self.level.update(1 / fps, self.player)
+                    ground = self.player.bottom
+                    self.assertTrue(self.player.grounded)
+                    self.assertGreaterEqual(ground, 69)
+                    self.assertLessEqual(ground, 75)
+                    self.player.handle_event(type('Event', (), {
+                        'type': pico2d.SDL_KEYDOWN, 'key': pico2d.SDLK_SPACE})())
+                    for _ in range(fps):
+                        self.player.update(1 / fps)
+                        self.level.update(1 / fps, self.player)
+                    self.assertTrue(self.player.grounded)
+                    self.assertAlmostEqual(self.player.bottom, platform.top)
+                    self.player.drop_through()
+                    for _ in range(fps):
+                        self.player.update(1 / fps)
+                        self.level.update(1 / fps, self.player)
+                    self.assertTrue(self.player.grounded)
+                    self.assertAlmostEqual(self.player.bottom, ground)
+
     def test_elevator_rope_and_platform_move_as_one_image(self):
         with patch('pico2d.load_image', return_value=Mock(w=1024, h=1008)):
             art = StageArt(self.level)

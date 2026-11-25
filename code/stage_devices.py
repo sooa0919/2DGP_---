@@ -26,10 +26,10 @@ class StageDevice:
 
 class LeafPlatform(StageDevice):
     def platform(self):
-        # The walking edge is the top of the horizontal vine, below a few
-        # decorative shoots at the sprite's top.
-        return Platform(self.left + 8, self.top - 24, self.right - 8,
-                        self.top - 16, one_way=True)
+        # Lower the thin collision strip 16px into the hanging foliage so the
+        # ground-level platforms can be cleared by the normal 120px jump.
+        top = self.top - 32
+        return Platform(self.left + 8, top - 8, self.right - 8, top, one_way=True)
 
 
 class StageColorSource(StageDevice):
