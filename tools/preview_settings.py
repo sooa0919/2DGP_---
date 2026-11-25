@@ -14,7 +14,7 @@ from code.settings import ROOT
 from code.settings_menu import SettingsMenu
 from code.title import TitleScreen
 from code.temple import TempleBackground
-from code.tutorial_level import TutorialLevel
+from code.illustrated_level import IllustratedLevel as TutorialLevel
 from code.player import Player
 
 
