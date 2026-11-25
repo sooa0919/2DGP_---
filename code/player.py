@@ -67,7 +67,7 @@ class Player:
                 self.drop_through()
             if (event.key == pico2d.SDLK_SPACE
                     and event.key not in self.keys and self.grounded):
-                self.velocity_y = self.JUMP_SPEED
+                self.velocity_y = getattr(self.level, 'jump_speed', self.JUMP_SPEED)
                 self.grounded = False
             self.keys.add(event.key)
         elif event.type == pico2d.SDL_KEYUP:
@@ -139,6 +139,7 @@ class Player:
         return self.level is not None and any(
             pool.has_blue and self.right > pool.left and self.left < pool.right
             and self.bottom < pool.top and self.top > pool.bottom
+            and (not hasattr(pool, 'overlaps') or pool.overlaps(self.left, self.bottom, self.right, self.top))
             for pool in self.level.water)
 
     @property
@@ -158,13 +159,31 @@ class Player:
         return self.y + self.TOP_OFFSET
 
     def _move_on_platforms(self, dt, dx):
+        was_grounded = self.grounded
         self.ignored_platforms = [p for p in self.ignored_platforms
                                  if self.top >= p.bottom]
-        solids = [p for p in self.level.collision_platforms()
+        nearby = getattr(self.level, 'collision_platforms_near', None)
+        candidates = (nearby(self.left - abs(dx * self.SPEED * dt) - 12,
+                             self.right + abs(dx * self.SPEED * dt) + 12)
+                      if nearby else self.level.collision_platforms())
+        solids = [p for p in candidates
                   if p not in self.ignored_platforms]
         old_x = self.x
         speed = self.SPEED * (0.7 if self.in_water else 1.0)
         self.x = max(self.HALF_WIDTH, min(self.x + dx * speed * dt, self.level.width - self.HALF_WIDTH))
+        step_height = getattr(self.level, 'step_height', 0)
+        if self.grounded and dx and step_height:
+            steps = [p.top for p in solids if not p.one_way
+                     and self.right > p.left and self.left < p.right
+                     and self.bottom < p.top <= self.bottom + step_height
+                     and p.bottom < self.top]
+            if steps:
+                rise = max(steps) - self.bottom
+                blocked = any(not p.one_way and p.right > self.left and p.left < self.right
+                              and p.bottom >= self.top and p.bottom < self.top + rise
+                              for p in solids)
+                if not blocked:
+                    self.y += rise
         for p in solids:
             if p.one_way:
                 continue
@@ -191,6 +210,15 @@ class Player:
             elif not p.one_way and self.velocity_y > 0 and old_top <= p.bottom + 0.01 and self.top >= p.bottom:
                 self.y = p.bottom - self.TOP_OFFSET
                 self.velocity_y = 0.0
+        if step_height and was_grounded and not self.grounded and self.velocity_y <= 0:
+            supports = [p.top for p in solids
+                        if self.x + self.FOOT_HALF_WIDTH > p.left
+                        and self.x - self.FOOT_HALF_WIDTH < p.right
+                        and 0 <= self.bottom - p.top <= step_height]
+            if supports:
+                self.y = max(supports) + self.FOOT_OFFSET
+                self.velocity_y = 0
+                self.grounded = True
         world_height = getattr(self.level, 'height', SCREEN_HEIGHT)
         if self.top > world_height:
             self.y = world_height - self.TOP_OFFSET
@@ -244,6 +272,20 @@ class Player:
         self.color = 'blue' if value else None
 
     def resolve_solid_water(self, pool):
+        if hasattr(pool, 'frozen_platforms'):
+            touching = [p for p in pool.frozen_platforms if p.right > self.left and p.left < self.right
+                        and p.top > self.bottom and p.bottom < self.top]
+            if not touching:
+                return
+            if pool.is_waterfall:
+                left = min(p.left for p in touching) - self.HALF_WIDTH
+                right = max(p.right for p in touching) + self.HALF_WIDTH
+                self.x = min((left, right), key=lambda x: abs(x - self.x))
+            else:
+                self.y = max(p.top for p in touching) + self.FOOT_OFFSET
+                self.velocity_y = 0
+                self.grounded = True
+            return
         if (self.right > pool.left and self.left < pool.right
                 and self.bottom < pool.top and self.top > pool.bottom):
             if getattr(pool, 'is_waterfall', False):

@@ -8,7 +8,7 @@ from code.blockout import ForestBlockout as Background
 from code.camera import Camera
 from code.display import clear_canvas, configure_fullscreen
 from code.player import Player
-from code.tutorial_level import TutorialLevel as Level
+from code.illustrated_level import IllustratedLevel as Level
 from code.tutorial import Tutorial
 from code.color_system import ColorSystem
 from code.settings import SCREEN_HEIGHT, SCREEN_WIDTH

@@ -34,6 +34,7 @@ class ColorSystem:
                    + list(getattr(level, 'devices', [])))
         return next((w for w in targets
                      if w.left <= x < w.right and w.bottom <= y <= w.top
+                     and (not hasattr(w, 'contains_point') or w.contains_point(x, y))
                      and getattr(w, 'unlock_stage', 0) <= getattr(level, 'progress', 99)
                      and self.can_exchange(w, player)), None)
 
@@ -67,7 +68,8 @@ class ColorSystem:
         if pool is None:
             if (player.x - x) ** 2 + (player.y - y) ** 2 <= self.INTERACTION_RADIUS ** 2:
                 candidates = list(getattr(level, 'color_sources', [])) + level.water + list(getattr(level, 'devices', []))
-                hit = next((w for w in candidates if w.left <= x < w.right and w.bottom <= y <= w.top), None)
+                hit = next((w for w in candidates if w.left <= x < w.right and w.bottom <= y <= w.top
+                            and (not hasattr(w, 'contains_point') or w.contains_point(x, y))), None)
                 if hit is not None:
                     if getattr(hit, 'unlock_stage', 0) > getattr(level, 'progress', 99):
                         self.notice = '앞 구간을 먼저 통과하세요.'
