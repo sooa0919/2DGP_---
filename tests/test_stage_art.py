@@ -30,30 +30,40 @@ class StageArtTests(unittest.TestCase):
                 self.assertTrue((pixels[:, :, 1][opaque] == pixels[:, :, 2][opaque]).all())
                 self.assertTrue((pixels[:, :, 3] == 0).any())
 
+    def test_terrain_is_an_exact_grayscale_copy_of_tile_with_original_alpha(self):
+        from tools.prepare_stage import grayscale
+        with Image.open(ROOT / 'image/background/tile/tile.png') as source:
+            expected = grayscale(source.convert('RGBA').resize((4096, 1008), Image.Resampling.LANCZOS))
+        actual = Image.new('RGBA', expected.size)
+        for i in range(4):
+            with Image.open(ROOT / f'image/background/stage1/stage_{i}.png') as chunk:
+                actual.paste(chunk, (i * 1024, 0))
+        self.assertTrue(np.array_equal(np.array(actual), np.array(expected)))
+        with Image.open(ROOT / 'image/background/stage1/stage_3_source.png') as colored:
+            self.assertTrue(np.array_equal(np.array(colored.getchannel('A')),
+                                           np.array(actual.crop((3072, 0, 4096, 1008)).getchannel('A'))))
+
     def test_scrolled_view_has_no_seams_or_vertical_offset(self):
         original_canvas = renderer.canvas
         try:
             with patch('pico2d.load_image', side_effect=renderer.Sprite):
                 art = StageArt()
+            expected_world = Image.new('RGB', (4096, 1008), (32, 40, 48))
+            for i, sprite in enumerate(art.objects):
+                expected_world.paste(sprite.image, (i * 1024, 0), sprite.image)
+            for name in ('water1', 'pool', 'leaf_0', 'leaf_1', 'leaf_2', 'leaf_3',
+                         'lamp_upper', 'door', 'lamp_door', 'ropes', 'elevator', 'lamp_elevator'):
+                left, bottom, right, top = art.layout[name]
+                sprite = art.sprites[name].image
+                expected_world.paste(sprite, (left, 1008-top), sprite)
+            chunks = art.chunks[:3] + [art.source_chunk]
+            for i, sprite in enumerate(chunks):
+                expected_world.paste(sprite.image, (i * 1024, 0), sprite.image)
             for camera_x, camera_y in ((0, 0), (1000, 200), (2944, 360)):
                 renderer.canvas = Image.new('RGB', (1152, 648), (32, 40, 48))
                 art.draw(camera_x, camera_y)
-                expected = Image.new('RGB', (1152, 648), (32, 40, 48))
-                stage = Image.new('RGBA', (4096, 1008))
-                for i, sprite in enumerate(art.chunks):
-                    stage.paste(sprite.image, (i * 1024, 0))
-                for name in ('water1', 'pool', 'leaf_0', 'leaf_1', 'leaf_2', 'leaf_3',
-                             'lamp_upper', 'door', 'lamp_door', 'ropes', 'elevator', 'lamp_elevator', 'source_ceiling'):
-                    left, bottom, right, top = art.layout[name]
-                    sprite = art.sprites[name].image
-                    # Match pico2d's regular alpha-blended sprite layers.
-                    region = stage.crop((left, 1008-top, right, 1008-bottom))
-                    region.alpha_composite(sprite)
-                    stage.paste(region, (left, 1008-top))
-                crop = stage.crop((camera_x, 1008 - camera_y - 648,
-                                   camera_x + 1152, 1008 - camera_y))
-                expected.paste(crop, (0, 0), crop)
-                # Independent per-sprite alpha rounding may differ at edges.
+                expected = expected_world.crop((camera_x, 1008-camera_y-648,
+                                                camera_x+1152, 1008-camera_y))
                 delta = np.abs(np.array(renderer.canvas).astype(float) - np.array(expected).astype(float))
                 self.assertLess(delta.mean(), .2)
         finally:

@@ -111,20 +111,22 @@ class IllustratedStageTests(unittest.TestCase):
         self.player.enter_level(self.level)
         self.assertTrue(all(source.active for source in sources))
 
-    def test_colored_water_is_transparent_and_draws_after_the_character(self):
+    def test_colored_water_is_transparent_and_stays_below_tiles(self):
         from code.blockout import ForestBlockout
         with patch('pico2d.load_image', return_value=Mock(w=1024, h=1008)):
             bg = ForestBlockout(self.level)
         self.level.water[0].has_blue = True
         with patch.object(bg.stage, 'sprite') as sprites, patch('pico2d.draw_rectangle'):
             bg.draw(0)
-            self.assertFalse(any(c.args[0].startswith('water') for c in sprites.call_args_list))
+            self.assertEqual(len([c for c in sprites.call_args_list if c.args[0].startswith('water')]), 1)
+            water_calls = len(sprites.call_args_list)
             bg.draw_overlay(0, self.player)
+            self.assertEqual(len(sprites.call_args_list), water_calls)
             water = [c for c in sprites.call_args_list if c.args[0].startswith('water')][-1]
             self.assertEqual(water.kwargs['opacity'], .3)
             self.assertFalse(water.kwargs['gray'])
             self.level.water[0].has_blue = False
-            bg.draw_overlay(0, self.player)
+            bg.draw(0)
             water = [c for c in sprites.call_args_list if c.args[0].startswith('water')][-1]
             self.assertEqual(water.kwargs['opacity'], 1.0)
             self.assertTrue(water.kwargs['gray'])

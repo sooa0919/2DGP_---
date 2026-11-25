@@ -14,6 +14,9 @@ class StageArt:
         folder = IMAGE_ROOT / 'background/stage1'
         self.chunks = [pico2d.load_image(str(folder / f'stage_{i}.png'))
                        for i in range(4)]
+        self.objects = [pico2d.load_image(str(folder / f'objects_{i}.png'))
+                        for i in range(4)]
+        self.source_chunk = pico2d.load_image(str(folder / 'stage_3_source.png'))
         self.layout = json.loads((folder / 'layout.json').read_text(encoding='utf-8'))
         self.sprites = {name + suffix: pico2d.load_image(str(folder / f'{name}{suffix}.png'))
                         for name in self.layout for suffix in ('', '_gray')}
@@ -38,13 +41,29 @@ class StageArt:
         image.opacify(1.0)
 
     def draw(self, camera_x, camera_y=0):
+        camera_x, camera_y = round(camera_x), round(camera_y)
+        self.draw_objects(camera_x, camera_y)
+        self.draw_devices(camera_x, camera_y)
+        self.draw_terrain(camera_x, camera_y)
+
+    def draw_objects(self, camera_x, camera_y=0):
+        self.draw_chunks(self.objects, camera_x, camera_y)
+
+    def draw_terrain(self, camera_x, camera_y=0):
+        chunks = self.chunks.copy()
+        if self.level is None or any(getattr(source, 'sprite_name', None) == 'source_ceiling'
+                                      and source.active for source in self.level.color_sources):
+            chunks[3] = self.source_chunk
+        self.draw_chunks(chunks, camera_x, camera_y)
+
+    def draw_chunks(self, chunks, camera_x, camera_y):
         # Share rounded edges between chunks to avoid seams on scroll.
         camera_x, camera_y = round(camera_x), round(camera_y)
         bottom = max(0, camera_y)
         top = min(self.HEIGHT, camera_y + SCREEN_HEIGHT)
         if top <= bottom:
             return
-        for index, image in enumerate(self.chunks):
+        for index, image in enumerate(chunks):
             origin = index * self.CHUNK_WIDTH
             left = max(origin, camera_x)
             right = min(origin + self.CHUNK_WIDTH, camera_x + SCREEN_WIDTH)
@@ -53,13 +72,12 @@ class StageArt:
                                 (left + right) / 2 - camera_x,
                                 (bottom + top) / 2 - camera_y,
                                 right - left, top - bottom)
-        self.draw_devices(camera_x, camera_y, include_water=self.level is None)
 
     def draw_devices(self, camera_x, camera_y, include_water=True):
         level = self.level
         if level is None:
             for name in ('water1', 'pool', 'leaf_0', 'leaf_1', 'leaf_2', 'leaf_3',
-                         'lamp_upper', 'door', 'lamp_door', 'ropes', 'elevator', 'lamp_elevator', 'source_ceiling'):
+                         'lamp_upper', 'door', 'lamp_door', 'ropes', 'elevator', 'lamp_elevator'):
                 self.sprite(name, camera_x, camera_y)
             return
         if include_water:
@@ -68,7 +86,7 @@ class StageArt:
             self.sprite(f'leaf_{i}', camera_x, camera_y, gray=True)
         self.draw_temporary_vines(camera_x, camera_y)
         for source in level.color_sources:
-            if getattr(source, 'sprite_name', None):
+            if getattr(source, 'sprite_name', None) and source.sprite_name != 'source_ceiling':
                 self.sprite(source.sprite_name, camera_x, camera_y, gray=not source.active)
         for name, switch in (('lamp_upper', level.upper_lamp),
                              ('lamp_elevator', level.elevator_switch)):

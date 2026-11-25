@@ -1,9 +1,8 @@
-"""Prepare the supplied stage without rearranging its artwork."""
+"""Prepare intact terrain, decoration, and gimmick layers at shared coordinates."""
 from pathlib import Path
 import json
 
-import numpy as np
-from PIL import Image, ImageOps, ImageChops, ImageFilter
+from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parent.parent
 STAGE_SIZE = (4096, 1008)
@@ -24,26 +23,18 @@ REGIONS = {
 }
 
 
-def remove_layer(composite, layer):
-    """Undo source-over where possible; opaque layer pixels become transparent."""
-    result = np.asarray(composite).astype(np.float32) / 255
-    foreground = np.asarray(layer).astype(np.float32) / 255
-    alpha = foreground[:, :, 3:4]
-    base_alpha = np.clip((result[:, :, 3:4] - alpha) / np.maximum(1 - alpha, .0001), 0, 1)
-    rgb = (result[:, :, :3] * result[:, :, 3:4] - foreground[:, :, :3] * alpha)
-    rgb /= np.maximum((1 - alpha) * base_alpha, .0001)
-    base_alpha[alpha >= .995] = 0
-    return Image.fromarray(np.rint(np.concatenate((np.clip(rgb, 0, 1), base_alpha), axis=2) * 255).astype('uint8'))
+def grayscale(image):
+    result = ImageOps.grayscale(image).convert('RGBA')
+    result.putalpha(image.getchannel('A'))
+    return result
 
 
 def main():
     folder = ROOT / 'image/background/stage1'
     folder.mkdir(exist_ok=True)
-    with Image.open(ROOT / 'image/background/tile/stage1_preview.png') as image:
-        stage = image.convert('RGBA').resize(STAGE_SIZE, Image.Resampling.LANCZOS)
-    # The opaque gate covers some floor in the assembled preview. Keep a
-    # neighboring strip of the same earth to reveal when the gate rises.
-    door_floor = stage.crop((2960, 930, 3030, 1008))
+    with Image.open(ROOT / 'image/background/tile/tile.png') as image:
+        terrain = image.convert('RGBA').resize(STAGE_SIZE, Image.Resampling.LANCZOS)
+    stage = grayscale(terrain)
     sheets = {}
     for name in ('water1', 'water2', 'water3', 'water_tile', 'color_system', 'object'):
         with Image.open(ROOT / f'image/background/tile/{name}.png') as image:
@@ -67,35 +58,20 @@ def main():
     for name, bounds in REGIONS.items():
         save(name, sheets['color_system'], bounds)
     ceiling_bounds = (3850, 515, 3935, 610)
-    save('source_ceiling', stage, ceiling_bounds)
-    for name in ('color_system', 'water3', 'water2', 'water1', 'water_tile'):
-        stage = remove_layer(stage, sheets[name])
-    # The preview can contain edges from several waterfall frames. Strip the
-    # complete footprint of every frame, including antialiased fringe pixels,
-    # so the static background never shows another frame behind the live one.
-    water_mask = Image.new('L', STAGE_SIZE)
-    for name in ('water1', 'water2', 'water3', 'water_tile'):
-        water_mask = ImageChops.lighter(water_mask, sheets[name].getchannel('A'))
-    # Resampling the assembled preview can leave a few faint pixels just
-    # outside the separately resampled frames. Include that narrow fringe.
-    water_mask = water_mask.filter(ImageFilter.MaxFilter(9))
-    device_mask = sheets['color_system'].getchannel('A').filter(ImageFilter.MaxFilter(3))
-    moving_mask = ImageChops.lighter(water_mask, device_mask)
-    keep = moving_mask.point(lambda alpha: 0 if alpha else 255)
-    stage.putalpha(ImageChops.multiply(stage.getchannel('A'), keep))
-    # Restore decoration hidden behind opaque moving devices (notably the
-    # tree canopy behind the elevator). Never bake the old platform back in.
-    stage = Image.alpha_composite(sheets['object'], stage)
-    foundation = Image.new('RGBA', STAGE_SIZE)
-    foundation.paste(door_floor, (2870, 930))
-    stage = Image.alpha_composite(foundation, stage)
-    stage.paste((0, 0, 0, 0), ceiling_bounds)
-    alpha = stage.getchannel('A')
-    stage = ImageOps.grayscale(stage).convert('RGBA')
-    stage.putalpha(alpha)
+    save('source_ceiling', terrain, ceiling_bounds)
+    objects = grayscale(sheets['object'])
+    # Tile pixels and alpha are never erased, dilated, repaired or sampled from
+    # neighboring tiles. Objects and gimmicks are separate layers behind them.
     for left in range(0, stage.width, CHUNK_WIDTH):
-        stage.crop((left, 0, min(left + CHUNK_WIDTH, stage.width), stage.height)).save(
-            folder / f'stage_{left // CHUNK_WIDTH}.png')
+        bounds = (left, 0, min(left + CHUNK_WIDTH, stage.width), stage.height)
+        index = left // CHUNK_WIDTH
+        stage.crop(bounds).save(folder / f'stage_{index}.png')
+        objects.crop(bounds).save(folder / f'objects_{index}.png')
+    # This source belongs to tile.png itself. Switch only its original colors;
+    # both versions have exactly the same terrain shape and alpha.
+    colored_source = stage.copy()
+    colored_source.paste(terrain.crop(ceiling_bounds), ceiling_bounds[:2])
+    colored_source.crop((3072, 0, 4096, 1008)).save(folder / 'stage_3_source.png')
     (folder / 'layout.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
 
 
