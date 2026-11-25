@@ -132,7 +132,8 @@ class BlueColorTests(unittest.TestCase):
              patch.object(game, "TitleScreen", return_value=Mock(handle_event=Mock(return_value='new'))), \
              patch.object(game, "Player", return_value=self.player), \
              patch.object(game, "Background", return_value=Mock()), \
-             patch.object(game, "Camera", return_value=SimpleNamespace(x=1900, y=0, follow=lambda x, y, dt: None)), \
+             patch.object(game, "Camera", return_value=SimpleNamespace(
+                 x=1900, y=0, follow=lambda x, y, dt: None, view_position=lambda *offset: (1900, 0))), \
              patch.object(game, "configure_fullscreen"), patch.object(game, "clear_canvas"), \
              patch.object(self.player, "draw"), \
              patch.multiple(pico2d, open_canvas=lambda *a: None, close_canvas=lambda: None,

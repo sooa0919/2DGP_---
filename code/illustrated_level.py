@@ -4,6 +4,7 @@ from .diamond import Diamond
 from .stage_geometry import collision_rectangles
 from .stage_devices import StageDevice, StageColorSource, LeafPlatform, ShapedWater, Elevator
 from .gimmicks import Vine
+from .door_effect import DoorOpeningEffect
 
 
 class IllustratedLevel(Level):
@@ -49,6 +50,7 @@ class IllustratedLevel(Level):
         self.lamp = self.elevator_switch
         self.door = Platform(2882, 75, 2928, 486)
         self.elevator = Elevator(self.elevator_switch)
+        self.door_effect = DoorOpeningEffect()
         self._bins = {}
         for p in self.platforms:
             for col in range(int(p.left) // 128, int(p.right) // 128 + 1):
@@ -85,6 +87,7 @@ class IllustratedLevel(Level):
         for device in self.devices:
             device.reset()
         self.elevator.reset()
+        self.door_effect.reset()
         self.progress = 99  # No invisible checkpoints from the former map.
         self.complete = False
 
@@ -95,6 +98,7 @@ class IllustratedLevel(Level):
             if water.has_blue:
                 water.animation_time = (water.animation_time + dt) % .66
         self.elevator.update(dt, player, self.collision_platforms_near(player.left, player.right))
+        self.door_effect.update(dt, self.door, self.door_switch.active)
         self.complete |= self.at_end(player)
 
     def at_end(self, player):

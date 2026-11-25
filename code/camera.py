@@ -24,6 +24,11 @@ class Camera:
     def snap_to(self, target_x, target_y=None):
         self.x, self.y = self.target(target_x, target_y)
 
+    def view_position(self, offset_x=0, offset_y=0):
+        """Apply a visual shake without moving the tracked camera or world."""
+        return (max(0, min(self.x + offset_x, max(0, self.world_width - self.screen_width))),
+                max(0, min(self.y + offset_y, max(0, self.world_height - SCREEN_HEIGHT))))
+
     def follow(self, target_x, target_y=None, dt=1 / 60):
         x, y = self.target(target_x, target_y)
         if abs(x - self.x) > self.screen_width or abs(y - self.y) > SCREEN_HEIGHT:

@@ -19,6 +19,11 @@ from code.settings_menu import SettingsMenu
 from code.audio import MusicManager
 
 
+def scene_position(camera, level):
+    effect = getattr(level, 'door_effect', None)
+    return camera.view_position(*(effect.shake_offset if effect else (0, 0)))
+
+
 def main():
     pico2d.open_canvas(SCREEN_WIDTH, SCREEN_HEIGHT)
     music = None
@@ -90,7 +95,8 @@ def main():
                         tutorial.handle_event(event, player)
                         if tutorial.paused:
                             continue
-                    colors.handle_event(event, level, player, camera.x, camera.y)
+                    view_x, view_y = scene_position(camera, level)
+                    colors.handle_event(event, level, player, view_x, view_y)
                     if event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_r:
                         camera.snap_to(player.x, player.y)
                     player.handle_event(event)
@@ -140,13 +146,14 @@ def main():
             if tutorial and loading is None and not settings_open:
                 tutorial.update(dt, level, player, colors)
             camera.follow(player.x, player.y, dt)
+            view_x, view_y = scene_position(camera, level)
             clear_canvas()
-            background.draw(camera.x, camera.y)
-            player.draw(camera.x, camera.y)
-            background.draw_overlay(camera.x, player, camera.y)
-            collision_debug.draw(level, player, camera.x, camera.y)
+            background.draw(view_x, view_y)
+            player.draw(view_x, view_y)
+            background.draw_overlay(view_x, player, view_y)
+            collision_debug.draw(level, player, view_x, view_y)
             if tutorial:
-                tutorial.draw(level, player, colors, camera.x, camera.y)
+                tutorial.draw(level, player, colors, view_x, view_y)
             if settings_open:
                 settings_ui.draw()
             if loading is not None:

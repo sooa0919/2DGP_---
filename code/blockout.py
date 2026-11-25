@@ -5,6 +5,7 @@ from .display import load_pixel_image
 from .settings import IMAGE_ROOT, SCREEN_WIDTH, SCREEN_HEIGHT
 from .diamond import DiamondRenderer
 from .stage_art import StageArt
+from .door_effect import DoorEffectRenderer
 
 
 class ForestBlockout:
@@ -14,6 +15,7 @@ class ForestBlockout:
         self.layers = [load_pixel_image(str(folder / f'plx-{i}.png')) for i in range(1, 6)]
         self.diamonds = DiamondRenderer()
         self.stage = StageArt(level)
+        self.door_effect = DoorEffectRenderer()
         self.time = 0.0
         self.scroll_rates = (0, .12, .24, .4, .6)
 
@@ -32,3 +34,4 @@ class ForestBlockout:
     def draw_overlay(self, camera_x, player, camera_y=0):
         self.stage.draw_water(camera_x, camera_y)
         self.diamonds.draw(self.level.color_sources, camera_x, camera_y)
+        self.door_effect.draw(self.level.door_effect, camera_x, camera_y)

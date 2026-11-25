@@ -183,7 +183,8 @@ class SettingsMenuTests(unittest.TestCase):
                             MusicManager=Mock(return_value=music),
                             LoadingScreen=Mock(return_value=Mock(needs_level=True, phase='done', done=True)),
                             Level=factory, Player=Mock(return_value=Mock()),
-                            Background=Mock(return_value=Mock()), Camera=Mock(return_value=Mock(x=0, y=0)),
+                            Background=Mock(return_value=Mock()),
+                            Camera=Mock(return_value=Mock(x=0, y=0, view_position=Mock(return_value=(0, 0)))),
                             ColorSystem=Mock(return_value=Mock())), \
              patch.multiple(pico2d, open_canvas=Mock(), close_canvas=close,
                             update_canvas=Mock(), delay=Mock(), get_events=lambda: next(frames)):
@@ -212,7 +213,8 @@ class SettingsMenuTests(unittest.TestCase):
                             LoadingScreen=Mock(return_value=Mock(needs_level=True, phase='done', done=True)),
                             Level=Mock(return_value=Event(width=1792, height=672, is_tutorial=False)),
                             Player=Mock(return_value=player), Background=Mock(return_value=background),
-                            Camera=Mock(return_value=Mock(x=0, y=0)), ColorSystem=Mock(return_value=colors)), \
+                            Camera=Mock(return_value=Mock(x=0, y=0, view_position=Mock(return_value=(0, 0)))),
+                            ColorSystem=Mock(return_value=colors)), \
              patch.multiple(pico2d, open_canvas=Mock(), close_canvas=Mock(),
                             update_canvas=Mock(), delay=Mock(), get_events=lambda: next(frames)):
             main.main()
