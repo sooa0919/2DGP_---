@@ -41,10 +41,17 @@ def main():
         render(collisions=True).save(out / 'start_collision.png')
         render(1900, 100, collisions=True).save(out / 'middle_collision.png')
         render(2944, 360, collisions=True).save(out / 'end_collision.png')
+        render(2944, 200).save(out / 'gray_map_colored_sources.png')
+        level.vines[0].active = True
+        render().save(out / 'temporary_green_vine.png')
+        level.vines[0].active = False
         level.water[0].has_blue = True
         for i in range(3):
             level.water[0].animation_time = i * .22
             render().save(out / f'water_{i+1}.png')
+        player.x, player.y = 347, 310
+        render().save(out / 'inside_transparent_water.png')
+        player.x, player.y = level.spawn[0], level.spawn[1] + player.FOOT_OFFSET
         fall_frames = []
         for i in range(9):
             level.water[0].animation_time = (i % 3) * .22

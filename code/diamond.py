@@ -49,6 +49,8 @@ class Diamond:
 class DiamondRenderer:
     def draw(self, sources, camera_x, camera_y=0):
         for source in sources:
+            if getattr(source, 'sprite_name', None):
+                continue  # Illustrated sources draw their supplied art.
             if source.right >= camera_x and source.left <= camera_x + SCREEN_WIDTH:
                 color = (48, 164, 231) if source.has_blue else (150, 156, 162)
                 half = source.WIDTH / 2

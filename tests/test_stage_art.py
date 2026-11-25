@@ -13,26 +13,16 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class StageArtTests(unittest.TestCase):
-    def test_colored_layers_reassemble_to_the_supplied_preview(self):
-        with Image.open(ROOT / 'image/background/tile/stage1_preview.png') as source:
-            expected = source.convert('RGBA').resize(
-                (4096, 1008), Image.Resampling.LANCZOS)
-        actual = Image.new('RGBA', expected.size)
+    def test_background_chunks_are_gray_and_keep_transparency(self):
         for i in range(4):
             with Image.open(ROOT / f'image/background/stage1/stage_{i}.png') as chunk:
-                actual.paste(chunk, (i * 1024, 0))
-        import json
-        layout = json.loads((ROOT / 'image/background/stage1/layout.json').read_text())
-        for name in ('water1', 'pool', 'leaf_0', 'leaf_1', 'leaf_2', 'leaf_3',
-                     'lamp_upper', 'door', 'lamp_door', 'ropes', 'elevator', 'lamp_elevator'):
-            left, bottom, right, top = layout[name]
-            with Image.open(ROOT / f'image/background/stage1/{name}.png') as sprite:
-                actual.alpha_composite(sprite, (left, 1008 - top))
-        # Inverting rounded translucent edge pixels can differ by a few levels.
-        back = Image.new('RGBA', actual.size, (32, 40, 48, 255))
-        a = np.array(Image.alpha_composite(back, actual)).astype(float)
-        b = np.array(Image.alpha_composite(back, expected)).astype(float)
-        self.assertLess(np.abs(a-b).mean(), 1.0)
+                self.assertEqual(chunk.size, (1024, 1008))
+                pixels = np.array(chunk)
+                opaque = pixels[:, :, 3] > 0
+                self.assertTrue(opaque.any())
+                self.assertTrue((pixels[:, :, 0][opaque] == pixels[:, :, 1][opaque]).all())
+                self.assertTrue((pixels[:, :, 1][opaque] == pixels[:, :, 2][opaque]).all())
+                self.assertTrue((pixels[:, :, 3] == 0).any())
 
     def test_scrolled_view_has_no_seams_or_vertical_offset(self):
         original_canvas = renderer.canvas
@@ -47,7 +37,7 @@ class StageArtTests(unittest.TestCase):
                 for i, sprite in enumerate(art.chunks):
                     stage.paste(sprite.image, (i * 1024, 0))
                 for name in ('water1', 'pool', 'leaf_0', 'leaf_1', 'leaf_2', 'leaf_3',
-                             'lamp_upper', 'door', 'lamp_door', 'ropes', 'elevator', 'lamp_elevator'):
+                             'lamp_upper', 'door', 'lamp_door', 'ropes', 'elevator', 'lamp_elevator', 'source_ceiling'):
                     left, bottom, right, top = art.layout[name]
                     sprite = art.sprites[name].image
                     # Match pico2d's regular alpha-blended sprite layers.

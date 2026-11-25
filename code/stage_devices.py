@@ -32,6 +32,20 @@ class LeafPlatform(StageDevice):
                         self.top - 16, one_way=True)
 
 
+class StageColorSource(StageDevice):
+    def __init__(self, left, bottom, right, top, name, sprite_name, color):
+        super().__init__(left, bottom, right, top, name, required_color=color, active=True)
+        self.sprite_name = sprite_name
+        self.animation_time = 0.0
+
+    def reset(self):
+        self.active = True
+        self.animation_time = 0.0
+
+    def update(self, dt):
+        self.animation_time += dt
+
+
 class ShapedWater(Water):
     def __init__(self, polygon, is_waterfall=False):
         super().__init__(min(x for x, y in polygon), min(y for x, y in polygon),

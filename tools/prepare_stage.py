@@ -63,11 +63,17 @@ def main():
     save('pool', sheets['water_tile'], sheets['water_tile'].getbbox())
     for name, bounds in REGIONS.items():
         save(name, sheets['color_system'], bounds)
+    ceiling_bounds = (3850, 515, 3935, 610)
+    save('source_ceiling', stage, ceiling_bounds)
     for name in ('color_system', 'water1', 'water_tile'):
         stage = remove_layer(stage, sheets[name])
     # Restore decoration hidden behind opaque moving devices (notably the
     # tree canopy behind the elevator). Never bake the old platform back in.
     stage = Image.alpha_composite(sheets['object'], stage)
+    stage.paste((0, 0, 0, 0), ceiling_bounds)
+    alpha = stage.getchannel('A')
+    stage = ImageOps.grayscale(stage).convert('RGBA')
+    stage.putalpha(alpha)
     for left in range(0, stage.width, CHUNK_WIDTH):
         stage.crop((left, 0, min(left + CHUNK_WIDTH, stage.width), stage.height)).save(
             folder / f'stage_{left // CHUNK_WIDTH}.png')

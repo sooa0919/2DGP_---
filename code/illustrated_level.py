@@ -2,7 +2,8 @@
 from .level import Level, Platform
 from .diamond import Diamond
 from .stage_geometry import collision_rectangles
-from .stage_devices import StageDevice, LeafPlatform, ShapedWater, Elevator
+from .stage_devices import StageDevice, StageColorSource, LeafPlatform, ShapedWater, Elevator
+from .gimmicks import Vine
 
 
 class IllustratedLevel(Level):
@@ -10,8 +11,7 @@ class IllustratedLevel(Level):
     gimmicks_enabled = True
     show_color_messages = False
     starting_blue = False
-    # The illustrated cliffs are much taller than the former blockout steps.
-    jump_speed = 1150.0
+    jump_speed = 560.0
     step_height = 10
 
     def __init__(self):
@@ -22,7 +22,9 @@ class IllustratedLevel(Level):
         self.objects = []
         self.platforms = collision_rectangles()
         self.thin_platforms = []
-        self.color_sources = [Diamond(164, 112)]
+        self.color_sources = [Diamond(164, 112),
+            StageColorSource(3130, 315, 3220, 390, '천장 노랑 원천', 'lamp_door', 'yellow'),
+            StageColorSource(3850, 398, 3935, 493, '천장 파랑 원천', 'source_ceiling', 'blue')]
         fall = ((160, 749), (190, 734), (225, 721), (267, 699), (302, 665),
                 (325, 599), (341, 478), (359, 300), (381, 120), (408, 72),
                 (470, 73), (538, 69), (523, 41), (475, 10), (405, 0),
@@ -35,11 +37,13 @@ class IllustratedLevel(Level):
                        for i, bounds in enumerate(((1510, 143, 1705, 218),
                             (1830, 143, 2030, 218), (2135, 143, 2330, 218),
                             (2395, 553, 2590, 633)))]
-        self.vines = self.leaves
+        # Temporary green climbing devices bridge the tall sections while
+        # retaining the original jump physics. Their art is deliberately simple.
+        self.vines = [Vine(550, 75, 630, 438, 0, '임시 덩굴 1'),
+                      Vine(2320, 73, 2410, 617, 0, '임시 덩굴 2')]
         self.droplets = []
         self.upper_lamp = StageDevice(3010, 598, 3120, 718, '윗가지 등불')
-        # Only the flower is clickable, not the long decorative hanging stem.
-        self.door_switch = StageDevice(3130, 315, 3220, 390, '문 장치')
+        self.door_switch = self.upper_lamp
         self.elevator_switch = StageDevice(3645, 63, 3735, 173, '엘리베이터 장치')
         self.lamp = self.elevator_switch
         self.door = Platform(2882, 75, 2928, 486)
@@ -52,11 +56,12 @@ class IllustratedLevel(Level):
 
     @property
     def devices(self):
-        return self.leaves + [self.upper_lamp, self.door_switch, self.elevator_switch]
+        return self.leaves + self.vines + [self.upper_lamp, self.elevator_switch]
 
     def dynamic_platforms(self):
         result = [self.elevator.platform()]
         result += [leaf.platform() for leaf in self.leaves if leaf.active]
+        result += [leaf for vine in self.vines if vine.active for leaf in vine.leaves()]
         for water in self.water:
             if water.solid:
                 result += water.frozen_platforms

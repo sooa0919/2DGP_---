@@ -51,7 +51,7 @@ class IllustratedStageTests(unittest.TestCase):
         self.assertEqual(fall.animation_time, 0)
         with patch('pico2d.load_image', return_value=Mock(w=1024, h=1008)):
             art = StageArt(self.level)
-        with patch.object(art, 'sprite') as draw:
+        with patch.object(art, 'sprite') as draw, patch('pico2d.draw_rectangle'):
             art.draw_devices(0, 0)
             self.assertEqual(draw.call_args_list[0].args[0], 'water1')
             self.assertTrue(draw.call_args_list[0].kwargs['gray'])
@@ -92,6 +92,39 @@ class IllustratedStageTests(unittest.TestCase):
         pond.has_blue = True
         self.tick(.6)
         self.assertAlmostEqual(self.player.bottom, 35, delta=2)
+
+    def test_ceiling_sources_start_colored_and_support_extraction_and_reset(self):
+        sources = [source for source in self.level.color_sources if getattr(source, 'sprite_name', None)]
+        self.assertEqual(len(sources), 2)
+        for source in sources:
+            self.player.color = None
+            self.player.x = (source.left + source.right) / 2
+            self.player.y = (source.bottom + source.top) / 2
+            self.assertEqual(source.stored_color, source.required_color)
+            self.assertTrue(self.colors.interact_at(self.player.x, self.player.y, self.level, self.player))
+            self.assertEqual(self.player.color, source.required_color)
+            self.assertIsNone(source.stored_color)
+            self.assertEqual(self.colors.last_transfer, (source.required_color, 'extract'))
+        self.player.enter_level(self.level)
+        self.assertTrue(all(source.active for source in sources))
+
+    def test_colored_water_is_transparent_and_draws_after_the_character(self):
+        from code.blockout import ForestBlockout
+        with patch('pico2d.load_image', return_value=Mock(w=1024, h=1008)):
+            bg = ForestBlockout(self.level)
+        self.level.water[0].has_blue = True
+        with patch.object(bg.stage, 'sprite') as sprites, patch('pico2d.draw_rectangle'):
+            bg.draw(0)
+            self.assertFalse(any(c.args[0].startswith('water') for c in sprites.call_args_list))
+            bg.draw_overlay(0, self.player)
+            water = [c for c in sprites.call_args_list if c.args[0].startswith('water')][-1]
+            self.assertEqual(water.kwargs['opacity'], .45)
+            self.assertFalse(water.kwargs['gray'])
+            self.level.water[0].has_blue = False
+            bg.draw_overlay(0, self.player)
+            water = [c for c in sprites.call_args_list if c.args[0].startswith('water')][-1]
+            self.assertEqual(water.kwargs['opacity'], 1.0)
+            self.assertTrue(water.kwargs['gray'])
 
     def test_leaf_visuals_and_collision_toggle_together(self):
         leaf = self.level.leaves[0]
@@ -144,23 +177,23 @@ class IllustratedStageTests(unittest.TestCase):
         self.assertGreater(self.player.x, 230)
         self.assertLess(self.player.x, 315)
 
-    def test_actual_movement_can_clear_the_first_illustrated_cliff(self):
-        self.level.water[0].has_blue = True
-        self.player.x, self.player.y = 450, 70
-        self.player.grounded = False
-        self.tick(1)
-        self.assertTrue(self.player.grounded)
+    def test_original_jump_height_and_temporary_green_climbing_platforms(self):
+        self.assertEqual(self.level.jump_speed, self.player.JUMP_SPEED)
+        vine = self.level.vines[0]
+        self.player.x, self.player.y = 570, 78 + self.player.FOOT_OFFSET
+        self.player.color = 'green'
+        self.assertTrue(self.colors.interact_at(580, 120, self.level, self.player))
+        self.assertTrue(vine.active)
+        self.assertTrue(all(p in self.level.collision_platforms() for p in vine.leaves()))
         self.player.handle_event(type('Event', (), {
             'type': pico2d.SDL_KEYDOWN, 'key': pico2d.SDLK_SPACE})())
-        self.player.keys.add(pico2d.SDLK_d)
-        for _ in range(220):
-            if self.player.x >= 830:
-                self.player.keys.clear()
+        highest = self.player.bottom
+        for _ in range(120):
             self.tick(1/120)
-        self.tick(.2)
-        self.assertGreater(self.player.x, 825)
+            highest = max(highest, self.player.bottom)
+        self.assertLessEqual(highest, 185)
         self.assertTrue(self.player.grounded)
-        self.assertAlmostEqual(self.player.bottom, 438, delta=3)
+        self.assertAlmostEqual(self.player.bottom, vine.leaves()[0].top, delta=1)
 
     def test_elevator_destination_allows_exit_to_the_right_ledge(self):
         lift = self.level.elevator
@@ -171,9 +204,11 @@ class IllustratedStageTests(unittest.TestCase):
         self.player.keys.add(pico2d.SDLK_d)
         self.player.handle_event(type('Event', (), {
             'type': pico2d.SDL_KEYDOWN, 'key': pico2d.SDLK_SPACE})())
-        self.tick(1.5)
+        self.tick(.65)
+        self.player.keys.discard(pico2d.SDLK_SPACE)
+        self.tick(1.15)
         self.player.keys.clear()
-        self.tick(.5)
+        self.tick(.2)
         self.assertGreater(self.player.x, 3900)
         self.assertTrue(self.player.grounded)
         self.assertAlmostEqual(self.player.bottom, 828, delta=3)
