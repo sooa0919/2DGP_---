@@ -78,7 +78,9 @@ def main():
         frames[0].save(out / 'elevator.gif', append_images=frames[1:],
                         save_all=True, duration=100, loop=0)
         player.enter_level(level)
-        player.x, player.y = 3060, 605 + player.FOOT_OFFSET
+        player.x = 3060
+        floor = max(p.top for p in level.platforms if p.left <= player.x < p.right and p.top < 700)
+        player.y = floor + player.FOOT_OFFSET
         camera = Camera(1152, level.width, level.height)
         camera.snap_to(player.x, player.y)
         closed = render(*camera.view_position())
