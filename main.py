@@ -145,7 +145,9 @@ def main():
                 background.update(dt)
             if tutorial and loading is None and not settings_open:
                 tutorial.update(dt, level, player, colors)
-            camera.follow(player.x, player.y, dt)
+            target_x, target_y = (level.camera_target(player) if hasattr(level, 'camera_target')
+                                  else (player.x, player.y))
+            camera.follow(target_x, target_y, dt)
             view_x, view_y = scene_position(camera, level)
             clear_canvas()
             background.draw(view_x, view_y)

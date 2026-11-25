@@ -66,6 +66,67 @@ class ShapedWater(Water):
                    for p in self.frozen_platforms)
 
 
+class RisingDoor:
+    PAN_DURATION = .55
+    OPEN_DURATION = 1.7
+    HOLD_DURATION = .25
+    RETURN_DURATION = .6
+    CLOSE_DURATION = 1.1
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.offset = 0.0
+        self.was_active = False
+        self.sequence_age = None
+        self.start_offset = 0.0
+
+    @staticmethod
+    def ease(value):
+        value = max(0, min(1, value))
+        return value * value * (3 - 2 * value)
+
+    @property
+    def opening_started(self):
+        return self.sequence_age is not None and self.sequence_age >= self.PAN_DURATION
+
+    @property
+    def camera_weight(self):
+        if self.sequence_age is None:
+            return 0.0
+        if self.sequence_age < self.PAN_DURATION:
+            return self.ease(self.sequence_age / self.PAN_DURATION)
+        return_start = self.PAN_DURATION + self.OPEN_DURATION + self.HOLD_DURATION
+        return 1 - self.ease((self.sequence_age - return_start) / self.RETURN_DURATION)
+
+    def update(self, dt, door, active, player=None):
+        dt = max(0, dt)
+        travel = door.top - door.bottom + 24
+        if active:
+            if not self.was_active:
+                self.sequence_age = 0.0
+                self.start_offset = self.offset
+            self.sequence_age += dt
+            progress = self.ease((self.sequence_age - self.PAN_DURATION) / self.OPEN_DURATION)
+            self.offset = self.start_offset + (travel - self.start_offset) * progress
+        else:
+            self.sequence_age = None
+            offset = max(0, self.offset - travel * dt / self.CLOSE_DURATION)
+            # Stop a descending gate above a character standing in the opening.
+            if (player is not None and player.right > door.left and player.left < door.right
+                    and player.bottom < door.top and player.top > door.bottom + offset):
+                offset = min(self.offset, max(offset, player.top - door.bottom + .5))
+            self.offset = offset
+        self.was_active = active
+
+    def platform(self, door):
+        bottom = door.bottom + self.offset
+        if bottom >= door.top:
+            return None
+        return Platform(door.left, bottom, door.right, door.top)
+
+
 class Elevator:
     SPEED = 130.0
 

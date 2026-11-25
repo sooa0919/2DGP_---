@@ -41,6 +41,9 @@ def main():
     folder.mkdir(exist_ok=True)
     with Image.open(ROOT / 'image/background/tile/stage1_preview.png') as image:
         stage = image.convert('RGBA').resize(STAGE_SIZE, Image.Resampling.LANCZOS)
+    # The opaque gate covers some floor in the assembled preview. Keep a
+    # neighboring strip of the same earth to reveal when the gate rises.
+    door_floor = stage.crop((2960, 930, 3030, 1008))
     sheets = {}
     for name in ('water1', 'water2', 'water3', 'water_tile', 'color_system', 'object'):
         with Image.open(ROOT / f'image/background/tile/{name}.png') as image:
@@ -83,6 +86,9 @@ def main():
     # Restore decoration hidden behind opaque moving devices (notably the
     # tree canopy behind the elevator). Never bake the old platform back in.
     stage = Image.alpha_composite(sheets['object'], stage)
+    foundation = Image.new('RGBA', STAGE_SIZE)
+    foundation.paste(door_floor, (2870, 930))
+    stage = Image.alpha_composite(foundation, stage)
     stage.paste((0, 0, 0, 0), ceiling_bounds)
     alpha = stage.getchannel('A')
     stage = ImageOps.grayscale(stage).convert('RGBA')

@@ -2,7 +2,7 @@
 from .level import Level, Platform
 from .diamond import Diamond
 from .stage_geometry import collision_rectangles
-from .stage_devices import StageDevice, StageColorSource, LeafPlatform, ShapedWater, Elevator
+from .stage_devices import StageDevice, StageColorSource, LeafPlatform, ShapedWater, Elevator, RisingDoor
 from .gimmicks import Vine
 from .door_effect import DoorOpeningEffect
 
@@ -49,6 +49,7 @@ class IllustratedLevel(Level):
         self.elevator_switch = StageDevice(3645, 63, 3735, 173, '엘리베이터 장치')
         self.lamp = self.elevator_switch
         self.door = Platform(2882, 75, 2928, 486)
+        self.door_motion = RisingDoor()
         self.elevator = Elevator(self.elevator_switch)
         self.door_effect = DoorOpeningEffect()
         self._bins = {}
@@ -67,8 +68,9 @@ class IllustratedLevel(Level):
         for water in self.water:
             if water.solid:
                 result += water.frozen_platforms
-        if not self.door_switch.active:
-            result.append(self.door)
+        door = self.door_motion.platform(self.door)
+        if door is not None:
+            result.append(door)
         return result
 
     def collision_platforms(self):
@@ -87,6 +89,7 @@ class IllustratedLevel(Level):
         for device in self.devices:
             device.reset()
         self.elevator.reset()
+        self.door_motion.reset()
         self.door_effect.reset()
         self.progress = 99  # No invisible checkpoints from the former map.
         self.complete = False
@@ -98,8 +101,19 @@ class IllustratedLevel(Level):
             if water.has_blue:
                 water.animation_time = (water.animation_time + dt) % .66
         self.elevator.update(dt, player, self.collision_platforms_near(player.left, player.right))
-        self.door_effect.update(dt, self.door, self.door_switch.active)
+        self.door_motion.update(dt, self.door, self.door_switch.active, player)
+        effect_dt = dt
+        if self.door_motion.opening_started and not self.door_effect.was_open:
+            effect_dt = min(dt, self.door_motion.sequence_age - self.door_motion.PAN_DURATION)
+        self.door_effect.update(effect_dt, self.door, self.door_motion.opening_started)
         self.complete |= self.at_end(player)
 
     def at_end(self, player):
         return player.grounded and player.x >= self.end_x and player.bottom >= 815
+
+    def camera_target(self, player):
+        weight = self.door_motion.camera_weight
+        x = (self.door.left + self.door.right) / 2
+        y = (self.door.bottom + self.door.top) / 2
+        return (player.x + (x - player.x) * weight,
+                player.y + (y - player.y) * weight)

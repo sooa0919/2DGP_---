@@ -18,12 +18,12 @@ class StageArt:
         self.sprites = {name + suffix: pico2d.load_image(str(folder / f'{name}{suffix}.png'))
                         for name in self.layout for suffix in ('', '_gray')}
 
-    def sprite(self, name, camera_x, camera_y, gray=False, offset=0, trim_bottom=None, opacity=1.0):
+    def sprite(self, name, camera_x, camera_y, gray=False, offset=0, trim_bottom=None, opacity=1.0, trim_top=None):
         left, bottom, right, top = self.layout[name]
         bottom += offset
         top += offset
         visible_bottom = max(bottom, camera_y, trim_bottom if trim_bottom is not None else bottom)
-        visible_top = min(top, camera_y + SCREEN_HEIGHT)
+        visible_top = min(top, camera_y + SCREEN_HEIGHT, trim_top if trim_top is not None else top)
         visible_left = max(left, camera_x)
         visible_right = min(right, camera_x + SCREEN_WIDTH)
         if visible_right <= visible_left or visible_top <= visible_bottom:
@@ -73,8 +73,9 @@ class StageArt:
         for name, switch in (('lamp_upper', level.upper_lamp),
                              ('lamp_elevator', level.elevator_switch)):
             self.sprite(name, camera_x, camera_y, gray=not switch.active)
-        if not level.door_switch.active:
-            self.sprite('door', camera_x, camera_y)
+        if level.door_motion.platform(level.door) is not None:
+            self.sprite('door', camera_x, camera_y, gray=True, offset=level.door_motion.offset,
+                        trim_top=level.door.top)
         self.sprite('ropes', camera_x, camera_y, gray=not level.elevator_switch.active,
                     offset=level.elevator.offset)
         self.sprite('elevator', camera_x, camera_y, gray=not level.elevator_switch.active,

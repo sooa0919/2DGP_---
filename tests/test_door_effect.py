@@ -15,7 +15,7 @@ class DoorEffectTests(unittest.TestCase):
         effect = level.door_effect
         self.assertEqual(effect.particles, [])
         level.door_switch.active = True
-        level.update(.016, player)
+        level.update(level.door_motion.PAN_DURATION + .016, player)
         self.assertEqual(effect.openings, 1)
         self.assertEqual(len(effect.particles), 48)
         for p in effect.particles:
@@ -27,7 +27,7 @@ class DoorEffectTests(unittest.TestCase):
         level.door_switch.active = False
         level.update(.01, player)
         level.door_switch.active = True
-        level.update(.01, player)
+        level.update(level.door_motion.PAN_DURATION + .01, player)
         self.assertEqual(effect.openings, 2)
         level.reset()
         self.assertEqual(effect.shake_offset, (0, 0))
