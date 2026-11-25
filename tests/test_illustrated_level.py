@@ -111,22 +111,22 @@ class IllustratedStageTests(unittest.TestCase):
         self.player.enter_level(self.level)
         self.assertTrue(all(source.active for source in sources))
 
-    def test_colored_water_is_transparent_and_stays_below_tiles(self):
+    def test_colored_water_is_transparent_and_draws_above_the_player(self):
         from code.blockout import ForestBlockout
         with patch('pico2d.load_image', return_value=Mock(w=1024, h=1008)):
             bg = ForestBlockout(self.level)
         self.level.water[0].has_blue = True
         with patch.object(bg.stage, 'sprite') as sprites, patch('pico2d.draw_rectangle'):
             bg.draw(0)
-            self.assertEqual(len([c for c in sprites.call_args_list if c.args[0].startswith('water')]), 1)
+            self.assertFalse(any(c.args[0].startswith('water') for c in sprites.call_args_list))
             water_calls = len(sprites.call_args_list)
             bg.draw_overlay(0, self.player)
-            self.assertEqual(len(sprites.call_args_list), water_calls)
+            self.assertGreater(len(sprites.call_args_list), water_calls)
             water = [c for c in sprites.call_args_list if c.args[0].startswith('water')][-1]
             self.assertEqual(water.kwargs['opacity'], .3)
             self.assertFalse(water.kwargs['gray'])
             self.level.water[0].has_blue = False
-            bg.draw(0)
+            bg.draw_overlay(0, self.player)
             water = [c for c in sprites.call_args_list if c.args[0].startswith('water')][-1]
             self.assertEqual(water.kwargs['opacity'], 1.0)
             self.assertTrue(water.kwargs['gray'])
@@ -210,8 +210,8 @@ class IllustratedStageTests(unittest.TestCase):
         self.assertGreater(self.player.x, 230)
         self.assertLess(self.player.x, 315)
 
-    def test_original_jump_height_and_temporary_green_climbing_platforms(self):
-        self.assertEqual(self.level.jump_speed, self.player.JUMP_SPEED)
+    def test_slightly_higher_jump_and_temporary_green_climbing_platforms(self):
+        self.assertEqual(self.level.jump_speed, 600)
         vine = self.level.vines[0]
         self.player.x, self.player.y = 570, 78 + self.player.FOOT_OFFSET
         self.player.color = 'green'
@@ -224,7 +224,8 @@ class IllustratedStageTests(unittest.TestCase):
         for _ in range(120):
             self.tick(1/120)
             highest = max(highest, self.player.bottom)
-        self.assertLessEqual(highest, 185)
+        self.assertGreater(highest, 190)
+        self.assertLessEqual(highest, 200)
         self.assertTrue(self.player.grounded)
         self.assertAlmostEqual(self.player.bottom, vine.leaves()[0].top, delta=1)
 

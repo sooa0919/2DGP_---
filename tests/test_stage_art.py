@@ -2,7 +2,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageOps
 
 from code.stage_art import StageArt
 from tools import preview_levels as renderer
@@ -13,6 +13,22 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 class StageArtTests(unittest.TestCase):
+    def test_water_overlay_is_hidden_by_tiles_without_changing_tile_alpha(self):
+        import json
+        folder = ROOT / 'image/background/stage1'
+        layout = json.loads((folder / 'layout.json').read_text(encoding='utf-8'))
+        with Image.open(ROOT / 'image/background/tile/tile.png') as source:
+            terrain_alpha = source.convert('RGBA').resize((4096, 1008), Image.Resampling.LANCZOS).getchannel('A')
+        for name in ('water1', 'water2', 'water3', 'pool'):
+            left, bottom, right, top = layout[name]
+            bounds = (left, 1008-top, right, 1008-bottom)
+            original_name = 'water_tile' if name == 'pool' else name
+            with Image.open(ROOT / f'image/background/tile/{original_name}.png') as source:
+                alpha = source.convert('RGBA').resize((4096, 1008), Image.Resampling.LANCZOS).crop(bounds).getchannel('A')
+            expected = ImageChops.multiply(alpha, ImageOps.invert(terrain_alpha.crop(bounds)))
+            with Image.open(folder / f'{name}.png') as overlay:
+                self.assertTrue(np.array_equal(np.array(overlay.getchannel('A')), np.array(expected)))
+
     def test_static_background_contains_no_baked_waterfall_frames(self):
         with Image.open(ROOT / 'image/background/stage1/stage_0.png') as chunk:
             # Mid-air waterfall section: all three frame silhouettes must be

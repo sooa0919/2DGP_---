@@ -31,8 +31,9 @@ class ForestBlockout:
                 layer.draw(start + width / 2, height / 2 - camera_y, width, height)
         self.stage.draw_objects(camera_x, camera_y)
         self.diamonds.draw(self.level.color_sources, camera_x, camera_y)
-        self.stage.draw_devices(camera_x, camera_y)
+        self.stage.draw_devices(camera_x, camera_y, include_water=False)
         self.stage.draw_terrain(camera_x, camera_y)
 
     def draw_overlay(self, camera_x, player, camera_y=0):
+        self.stage.draw_water(camera_x, camera_y)
         self.door_effect.draw(self.level.door_effect, camera_x, camera_y)

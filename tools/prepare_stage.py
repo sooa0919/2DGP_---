@@ -2,7 +2,7 @@
 from pathlib import Path
 import json
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageChops
 
 ROOT = Path(__file__).resolve().parent.parent
 STAGE_SIZE = (4096, 1008)
@@ -41,8 +41,13 @@ def main():
             sheets[name] = image.convert('RGBA').resize(STAGE_SIZE, Image.Resampling.LANCZOS)
     manifest = {}
 
-    def save(name, image, bounds):
+    def save(name, image, bounds, behind_terrain=False):
         crop = image.crop(bounds)
+        if behind_terrain:
+            # Clip the WATER layer only. This lets it tint the player while
+            # keeping opaque tiles in front, without changing any tile pixels.
+            visible = ImageOps.invert(terrain.getchannel('A').crop(bounds))
+            crop.putalpha(ImageChops.multiply(crop.getchannel('A'), visible))
         crop.save(folder / f'{name}.png')
         gray = ImageOps.grayscale(crop).convert('RGBA')
         gray.putalpha(crop.getchannel('A'))
@@ -53,8 +58,8 @@ def main():
     # All three frames use a common crop so their positions never jitter.
     water_bounds = (150, 250, 555, 1008)
     for frame in range(1, 4):
-        save(f'water{frame}', sheets[f'water{frame}'], water_bounds)
-    save('pool', sheets['water_tile'], sheets['water_tile'].getbbox())
+        save(f'water{frame}', sheets[f'water{frame}'], water_bounds, behind_terrain=True)
+    save('pool', sheets['water_tile'], sheets['water_tile'].getbbox(), behind_terrain=True)
     for name, bounds in REGIONS.items():
         save(name, sheets['color_system'], bounds)
     ceiling_bounds = (3850, 515, 3935, 610)

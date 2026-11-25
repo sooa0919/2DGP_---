@@ -12,7 +12,7 @@ class IllustratedLevel(Level):
     gimmicks_enabled = True
     show_color_messages = False
     starting_blue = False
-    jump_speed = 560.0
+    jump_speed = 600.0
     step_height = 10
 
     def __init__(self):
