@@ -39,6 +39,9 @@ def main():
             return renderer.canvas.copy()
 
         render().save(out / 'start_gray.png')
+        bg.colored = True
+        render().save(out / 'start_color.png')
+        bg.colored = False
         render(collisions=True).save(out / 'start_collision.png')
         render(1900, 100, collisions=True).save(out / 'middle_collision.png')
         render(2944, 360, collisions=True).save(out / 'end_collision.png')

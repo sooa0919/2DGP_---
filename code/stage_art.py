@@ -11,12 +11,16 @@ class StageArt:
 
     def __init__(self, level=None):
         self.level = level
+        self.colored = False
         folder = IMAGE_ROOT / 'background/stage1'
         self.chunks = [pico2d.load_image(str(folder / f'stage_{i}.png'))
                        for i in range(4)]
         self.objects = [pico2d.load_image(str(folder / f'objects_{i}.png'))
                         for i in range(4)]
         self.source_chunk = pico2d.load_image(str(folder / 'stage_3_source.png'))
+        self.color_chunks = [pico2d.load_image(str(folder / f'stage_color_{i}.png')) for i in range(4)]
+        self.color_objects = [pico2d.load_image(str(folder / f'objects_color_{i}.png')) for i in range(4)]
+        self.empty_source_chunk = pico2d.load_image(str(folder / 'stage_color_3_empty.png'))
         self.layout = json.loads((folder / 'layout.json').read_text(encoding='utf-8'))
         self.sprites = {name + suffix: pico2d.load_image(str(folder / f'{name}{suffix}.png'))
                         for name in self.layout for suffix in ('', '_gray')}
@@ -49,13 +53,16 @@ class StageArt:
         self.draw_terrain(camera_x, camera_y)
 
     def draw_objects(self, camera_x, camera_y=0):
-        self.draw_chunks(self.objects, camera_x, camera_y)
+        self.draw_chunks(self.color_objects if self.colored else self.objects, camera_x, camera_y)
 
     def draw_terrain(self, camera_x, camera_y=0):
-        chunks = self.chunks.copy()
-        if self.level is None or any(getattr(source, 'sprite_name', None) == 'source_ceiling'
-                                      and source.active for source in self.level.color_sources):
+        chunks = (self.color_chunks if self.colored else self.chunks).copy()
+        source_active = self.level is None or any(getattr(source, 'sprite_name', None) == 'source_ceiling'
+                                                 and source.active for source in self.level.color_sources)
+        if not self.colored and source_active:
             chunks[3] = self.source_chunk
+        elif self.colored and not source_active:
+            chunks[3] = self.empty_source_chunk
         self.draw_chunks(chunks, camera_x, camera_y)
 
     def draw_chunks(self, chunks, camera_x, camera_y):
@@ -85,7 +92,7 @@ class StageArt:
         if include_water:
             self.draw_water(camera_x, camera_y)
         for i, leaf in enumerate(level.leaves):
-            self.sprite(f'leaf_{i}', camera_x, camera_y, gray=True)
+            self.sprite(f'leaf_{i}', camera_x, camera_y, gray=not self.colored)
         self.draw_temporary_vines(camera_x, camera_y)
         for source in level.color_sources:
             if getattr(source, 'sprite_name', None) and source.sprite_name != 'source_ceiling':

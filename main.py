@@ -36,6 +36,7 @@ def main():
         settings_ui = None
         settings_open = False
         collision_debug = CollisionDebug()
+        background = None
         previous = perf_counter()
         running = True
         while running:
@@ -45,6 +46,9 @@ def main():
             for event in pico2d.get_events():
                 collision_debug.handle_event(event, enabled=(
                     title is None and loading is None and not settings_open))
+                if background is not None:
+                    background.handle_event(event, enabled=(
+                        title is None and loading is None and not settings_open))
                 if event.type == pico2d.SDL_QUIT:
                     running = False
                     break

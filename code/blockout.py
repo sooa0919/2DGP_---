@@ -13,6 +13,10 @@ class ForestBlockout:
         self.level = level
         folder = IMAGE_ROOT / 'background/grayscale/background3_jungle2'
         self.layers = [load_pixel_image(str(folder / f'plx-{i}.png')) for i in range(1, 6)]
+        folder = IMAGE_ROOT / 'background/background_layer/background3_jungle2'
+        self.color_layers = [load_pixel_image(str(folder / f'plx-{i}.png')) for i in range(1, 6)]
+        self.colored = False
+        self.palette_key_down = False
         self.diamonds = DiamondRenderer()
         self.stage = StageArt(level)
         self.door_effect = DoorEffectRenderer()
@@ -22,10 +26,22 @@ class ForestBlockout:
     def update(self, dt):
         self.time += dt
 
+    def handle_event(self, event, enabled=True):
+        if event.type == pico2d.SDL_WINDOWEVENT:
+            if event.event == pico2d.SDL_WINDOWEVENT_FOCUS_LOST:
+                self.palette_key_down = False
+        elif event.type == pico2d.SDL_KEYUP and event.key == pico2d.SDLK_v:
+            self.palette_key_down = False
+        elif event.type == pico2d.SDL_KEYDOWN and event.key == pico2d.SDLK_v:
+            if enabled and not self.palette_key_down:
+                self.colored = not self.colored
+            self.palette_key_down = True
+
     def draw(self, camera_x, camera_y=0):
         height = max(SCREEN_HEIGHT, self.level.height)
         width = round(height * SCREEN_WIDTH / SCREEN_HEIGHT)
-        for layer, rate in zip(self.layers, self.scroll_rates):
+        self.stage.colored = self.colored
+        for layer, rate in zip(self.color_layers if self.colored else self.layers, self.scroll_rates):
             offset = round(camera_x * rate) % width
             for start in (-offset, width - offset):
                 layer.draw(start + width / 2, height / 2 - camera_y, width, height)

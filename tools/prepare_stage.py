@@ -76,11 +76,16 @@ def main():
         index = left // CHUNK_WIDTH
         stage.crop(bounds).save(folder / f'stage_{index}.png')
         objects.crop(bounds).save(folder / f'objects_{index}.png')
+        terrain.crop(bounds).save(folder / f'stage_color_{index}.png')
+        sheets['object'].crop(bounds).save(folder / f'objects_color_{index}.png')
     # This source belongs to tile.png itself. Switch only its original colors;
     # both versions have exactly the same terrain shape and alpha.
     colored_source = stage.copy()
     colored_source.paste(terrain.crop(ceiling_bounds), ceiling_bounds[:2])
     colored_source.crop((3072, 0, 4096, 1008)).save(folder / 'stage_3_source.png')
+    empty_source = terrain.copy()
+    empty_source.paste(stage.crop(ceiling_bounds), ceiling_bounds[:2])
+    empty_source.crop((3072, 0, 4096, 1008)).save(folder / 'stage_color_3_empty.png')
     # The central tree was previously traced by hand. Read its solid silhouette
     # directly from the clean tile layer, including the switch's curved ledge.
     alpha = terrain.getchannel('A')
