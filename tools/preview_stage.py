@@ -11,6 +11,7 @@ from tools.preview_tutorial import rectangle
 from code.illustrated_level import IllustratedLevel
 from code.blockout import ForestBlockout
 from code.player import Player
+from code.camera import Camera
 
 
 def main():
@@ -77,17 +78,21 @@ def main():
         frames[0].save(out / 'elevator.gif', append_images=frames[1:],
                         save_all=True, duration=100, loop=0)
         player.enter_level(level)
-        player.x, player.y = 2810, 78 + player.FOOT_OFFSET
-        closed = render(2300, 40)
-        frames = [closed.copy() for _ in range(6)]
+        player.x, player.y = 3060, 605 + player.FOOT_OFFSET
+        camera = Camera(1152, level.width, level.height)
+        camera.snap_to(player.x, player.y)
+        closed = render(*camera.view_position())
+        frames = [closed.resize((864, 486), Image.Resampling.LANCZOS) for _ in range(6)]
         level.door_switch.active = True
-        for i in range(40):
+        for i in range(112):
             level.update(1 / 30, player)
-            shake_x, shake_y = level.door_effect.shake_offset
-            shot = render(2300 + shake_x, 40 + shake_y)
-            frames.append(shot)
-            if i == 4:
+            camera.follow(*level.camera_target(player), 1 / 30)
+            shot = render(*camera.view_position(*level.door_effect.shake_offset))
+            frames.append(shot.resize((864, 486), Image.Resampling.LANCZOS))
+            if i == 23:
                 shot.save(out / 'door_open_dust.png')
+            if i == 41:
+                shot.save(out / 'door_half_open.png')
         frames[0].save(out / 'door_opening.gif', append_images=frames[1:],
                         save_all=True, duration=33, loop=0)
 
