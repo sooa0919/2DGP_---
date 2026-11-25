@@ -1,7 +1,7 @@
 """Stage one: collision and devices placed on the supplied illustration."""
 from .level import Level, Platform
 from .diamond import Diamond
-from .stage_geometry import collision_rectangles
+from .stage_geometry import terrain_collision_rectangles
 from .stage_devices import StageDevice, StageColorSource, LeafPlatform, ShapedWater, Elevator, RisingDoor
 from .gimmicks import Vine
 from .door_effect import DoorOpeningEffect
@@ -21,7 +21,7 @@ class IllustratedLevel(Level):
         self.spawn = (80.0, 78.0)
         self.end_x, self.end_y = 4020, 827
         self.objects = []
-        self.platforms = collision_rectangles()
+        self.platforms = terrain_collision_rectangles()
         self.thin_platforms = []
         self.color_sources = [Diamond(164, 112),
             StageColorSource(3130, 315, 3220, 390, '천장 노랑 원천', 'lamp_door', 'yellow'),

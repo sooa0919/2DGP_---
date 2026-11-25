@@ -20,6 +20,8 @@ class StageArt:
         self.layout = json.loads((folder / 'layout.json').read_text(encoding='utf-8'))
         self.sprites = {name + suffix: pico2d.load_image(str(folder / f'{name}{suffix}.png'))
                         for name in self.layout for suffix in ('', '_gray')}
+        self.sprites['door_on'] = pico2d.load_image(str(folder / 'door_on.png'))
+        self.layout['door_on'] = self.layout['door']
 
     def sprite(self, name, camera_x, camera_y, gray=False, offset=0, trim_bottom=None, opacity=1.0, trim_top=None):
         left, bottom, right, top = self.layout[name]
@@ -92,7 +94,8 @@ class StageArt:
                              ('lamp_elevator', level.elevator_switch)):
             self.sprite(name, camera_x, camera_y, gray=not switch.active)
         if level.door_motion.platform(level.door) is not None:
-            self.sprite('door', camera_x, camera_y, gray=True, offset=level.door_motion.offset,
+            name = 'door_on' if level.door_switch.active else 'door'
+            self.sprite(name, camera_x, camera_y, gray=not level.door_switch.active, offset=level.door_motion.offset,
                         trim_top=level.door.top)
         self.sprite('ropes', camera_x, camera_y, gray=not level.elevator_switch.active,
                     offset=level.elevator.offset)

@@ -83,7 +83,26 @@ class RisingDoorTests(unittest.TestCase):
             art = StageArt(level)
         with patch.object(art, 'sprite') as draw, patch('pico2d.draw_rectangle'):
             art.draw_devices(2300, 0)
-            door = [c for c in draw.call_args_list if c.args[0] == 'door']
+            door = [c for c in draw.call_args_list if c.args[0] == 'door_on']
             self.assertEqual(len(door), 1)
+            self.assertFalse(door[0].kwargs['gray'])
             self.assertEqual(door[0].kwargs['offset'], level.door_motion.offset)
             self.assertEqual(door[0].kwargs['trim_top'], level.door.top)
+
+    def test_gate_changes_color_before_rising_and_returns_to_gray_when_canceled(self):
+        level = IllustratedLevel()
+        with patch('pico2d.load_image', return_value=Mock(w=1024, h=1008)):
+            art = StageArt(level)
+        with patch.object(art, 'sprite') as draw, patch('pico2d.draw_rectangle'):
+            art.draw_devices(2300, 0)
+            closed = [c for c in draw.call_args_list if c.args[0] == 'door'][-1]
+            self.assertTrue(closed.kwargs['gray'])
+            level.door_switch.active = True
+            art.draw_devices(2300, 0)
+            opened = [c for c in draw.call_args_list if c.args[0] == 'door_on'][-1]
+            self.assertFalse(opened.kwargs['gray'])
+            self.assertEqual(opened.kwargs['offset'], 0)
+            level.door_switch.active = False
+            draw.reset_mock()
+            art.draw_devices(2300, 0)
+            self.assertFalse(any(c.args[0] == 'door_on' for c in draw.call_args_list))

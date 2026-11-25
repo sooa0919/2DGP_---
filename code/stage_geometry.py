@@ -75,3 +75,14 @@ def collision_rectangles(step=4, polygons=TERRAIN):
                     rectangles.append(Platform(left, bounds[0], right, bounds[1]))
             previous = current
     return rectangles
+
+
+def terrain_collision_rectangles():
+    """Use the tile's measured central-tree shape instead of its old outline."""
+    import json
+    from .level import Platform
+    from .settings import IMAGE_ROOT
+    rectangles = collision_rectangles(polygons=tuple(p for i, p in enumerate(TERRAIN) if i != 7))
+    path = IMAGE_ROOT / 'background/stage1/central_tree_collision.json'
+    rectangles.extend(Platform(*bounds) for bounds in json.loads(path.read_text(encoding='utf-8')))
+    return rectangles

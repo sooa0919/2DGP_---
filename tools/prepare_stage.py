@@ -62,6 +62,10 @@ def main():
     save('pool', sheets['water_tile'], sheets['water_tile'].getbbox(), behind_terrain=True)
     for name, bounds in REGIONS.items():
         save(name, sheets['color_system'], bounds)
+    door = sheets['color_system'].crop(REGIONS['door'])
+    colored_door = ImageOps.colorize(ImageOps.grayscale(door), (62, 47, 26), (223, 193, 118)).convert('RGBA')
+    colored_door.putalpha(door.getchannel('A'))
+    colored_door.save(folder / 'door_on.png')
     ceiling_bounds = (3850, 515, 3935, 610)
     save('source_ceiling', terrain, ceiling_bounds)
     objects = grayscale(sheets['object'])
@@ -77,6 +81,34 @@ def main():
     colored_source = stage.copy()
     colored_source.paste(terrain.crop(ceiling_bounds), ceiling_bounds[:2])
     colored_source.crop((3072, 0, 4096, 1008)).save(folder / 'stage_3_source.png')
+    # The central tree was previously traced by hand. Read its solid silhouette
+    # directly from the clean tile layer, including the switch's curved ledge.
+    alpha = terrain.getchannel('A')
+    colliders = []
+    previous = {}
+    for left in range(2400, 3500, 4):
+        runs = []
+        start = None
+        for y in range(609):
+            solid = y < 608 and alpha.getpixel((left + 2, y)) >= 160
+            if solid and start is None:
+                start = y
+            elif not solid and start is not None:
+                if y - start >= 12:  # Ignore detached decorative specks/shoots.
+                    runs.append((1008 - y, 1008 - start))
+                start = None
+        current = {}
+        for bottom, top in runs:
+            key = (bottom, top)
+            old = previous.get(key)
+            if old is not None:
+                colliders[old][2] = left + 4
+                current[key] = old
+            else:
+                current[key] = len(colliders)
+                colliders.append([left, bottom, left + 4, top])
+        previous = current
+    (folder / 'central_tree_collision.json').write_text(json.dumps(colliders), encoding='utf-8')
     (folder / 'layout.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
 
 
