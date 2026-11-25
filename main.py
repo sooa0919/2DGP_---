@@ -6,6 +6,7 @@ import pico2d
 
 from code.blockout import ForestBlockout as Background
 from code.camera import Camera
+from code.collision_debug import CollisionDebug
 from code.display import clear_canvas, configure_fullscreen
 from code.player import Player
 from code.illustrated_level import IllustratedLevel as Level
@@ -29,6 +30,7 @@ def main():
         loading = None
         settings_ui = None
         settings_open = False
+        collision_debug = CollisionDebug()
         previous = perf_counter()
         running = True
         while running:
@@ -36,6 +38,8 @@ def main():
             dt = min(now - previous, 0.05)
             previous = now
             for event in pico2d.get_events():
+                collision_debug.handle_event(event, enabled=(
+                    title is None and loading is None and not settings_open))
                 if event.type == pico2d.SDL_QUIT:
                     running = False
                     break
@@ -97,6 +101,7 @@ def main():
             if loading is not None:
                 if loading.needs_level:
                     level = Level()
+                    collision_debug.visible = False
                     background = Background(level)
                     player = Player(level)
                     player.enter_level(level)
@@ -139,6 +144,7 @@ def main():
             background.draw(camera.x, camera.y)
             player.draw(camera.x, camera.y)
             background.draw_overlay(camera.x, player, camera.y)
+            collision_debug.draw(level, player, camera.x, camera.y)
             if tutorial:
                 tutorial.draw(level, player, colors, camera.x, camera.y)
             if settings_open:
