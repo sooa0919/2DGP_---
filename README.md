@@ -97,6 +97,9 @@ BGM 슬라이더는 현재 재생 중인 배경음악에, 효과음 슬라이더
 엘리베이터의 긴 덩굴과 발판 그림은 같은 거리만큼 통째로 이동합니다.
 가로로 놓인 네 덩굴 발판은 색 부여 없이 항상 밟을 수 있으며, 아래에서 점프로 통과하고 S로 내려갈 수 있습니다.
 R을 누르면 엘리베이터 위치·장치·물·색·캐릭터가 모두 초기화됩니다.
+문이 열리는 순간 0.38초 동안 최대 7픽셀의 화면 흔들림이 서서히 줄어들고, 문 양옆에서 회색 돌 조각과 먼지가 퍼집니다.
+문이 열린 상태에서는 반복하지 않으며, 다시 닫았다 열면 한 번 더 재생합니다. R로 초기화하면 효과도 사라집니다.
+흔들림은 화면에만 적용하며 충돌·캐릭터 위치는 유지합니다. 클릭 좌표와 충돌 범위 표시는 흔들린 화면에 맞춥니다.
 
 ## 확인
 
@@ -105,6 +108,8 @@ R을 누르면 엘리베이터 위치·장치·물·색·캐릭터가 모두 초
 - 지형 충돌 표시: `previews/stage1/start_collision.png`
 - 폭포 3프레임: `previews/stage1/waterfall.gif`
 - 엘리베이터 상승·하강: `previews/stage1/elevator.gif`
+- 문 열림·화면 흔들림·돌/먼지: `previews/stage1/door_opening.gif`
+- 돌/먼지 텍스처 생성: `python tools/prepare_door_effect.py`
 - 설정 화면: `python tools/preview_settings.py`
 - 음량 슬라이더 동작: `previews/settings_slider.gif`
 - UI 시트 변경 후 에셋 추출: `python tools/prepare_ui.py`

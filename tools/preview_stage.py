@@ -76,6 +76,20 @@ def main():
             frames.append(render(2944, camera_y))
         frames[0].save(out / 'elevator.gif', append_images=frames[1:],
                         save_all=True, duration=100, loop=0)
+        player.enter_level(level)
+        player.x, player.y = 2810, 78 + player.FOOT_OFFSET
+        closed = render(2300, 40)
+        frames = [closed.copy() for _ in range(6)]
+        level.door_switch.active = True
+        for i in range(40):
+            level.update(1 / 30, player)
+            shake_x, shake_y = level.door_effect.shake_offset
+            shot = render(2300 + shake_x, 40 + shake_y)
+            frames.append(shot)
+            if i == 4:
+                shot.save(out / 'door_open_dust.png')
+        frames[0].save(out / 'door_opening.gif', append_images=frames[1:],
+                        save_all=True, duration=33, loop=0)
 
 
 if __name__ == '__main__':
